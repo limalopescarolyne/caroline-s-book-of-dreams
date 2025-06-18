@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -60,7 +61,7 @@
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 84%% 4.9%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 210 40% 98%;
@@ -100,4 +101,74 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom fonts and effects */
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+.font-cursive {
+  font-family: 'Dancing Script', cursive;
+}
+
+.font-serif {
+  font-family: 'Playfair Display', serif;
+}
+
+/* 3D perspective for carousel */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Paper texture effect */
+.bg-paper-texture {
+  background-image: 
+    radial-gradient(circle at 25px 25px, rgba(255,255,255,.2) 2%, transparent 0%), 
+    radial-gradient(circle at 75px 75px, rgba(255,255,255,.2) 2%, transparent 0%);
+  background-size: 100px 100px;
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Glowing text effect */
+.glow-text {
+  text-shadow: 0 0 10px rgba(219, 39, 119, 0.5);
+}
+
+/* Romantic gradient backgrounds */
+.bg-romantic {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+}
+
+.bg-dreamy {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+}
+
+/* Vintage card effect */
+.vintage-card {
+  background: linear-gradient(145deg, #f9f9f9, #ececec);
+  box-shadow: 
+    20px 20px 60px #d9d9d9,
+    -20px -20px 60px #ffffff;
 }
