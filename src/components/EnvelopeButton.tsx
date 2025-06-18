@@ -16,6 +16,13 @@ const EnvelopeButton = () => {
     }, 300);
   };
 
+  const glowStyle = {
+    boxShadow: isClicked 
+      ? '0 20px 40px rgba(219, 39, 119, 0.3), 0 0 20px rgba(147, 51, 234, 0.2)'
+      : '0 20px 40px rgba(219, 39, 119, 0.3), 0 0 20px rgba(147, 51, 234, 0.2)',
+    animation: isClicked ? 'none' : 'pulse 2s ease-in-out infinite alternate',
+  };
+
   return (
     <div className="relative">
       <Button
@@ -29,12 +36,9 @@ const EnvelopeButton = () => {
           transform transition-all duration-300
           hover:scale-105 hover:-translate-y-1
           border-2 border-white/20
-          ${isClicked ? 'animate-pulse' : 'animate-pulse'}
+          ${isClicked ? 'animate-pulse' : ''}
         `}
-        style={{
-          boxShadow: '0 20px 40px rgba(219, 39, 119, 0.3), 0 0 20px rgba(147, 51, 234, 0.2)',
-          animation: isClicked ? 'none' : 'glow 2s ease-in-out infinite alternate',
-        }}
+        style={glowStyle}
       >
         <Mail className={`mr-2 h-5 w-5 transition-transform duration-300 ${isClicked ? 'scale-110' : ''}`} />
         {isClicked ? 'Enviando...' : 'Enviar Mensagem'}
@@ -45,13 +49,6 @@ const EnvelopeButton = () => {
         {/* Sparkle effect */}
         <div className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full opacity-70 animate-ping"></div>
       </Button>
-      
-      <style jsx>{`
-        @keyframes glow {
-          0% { box-shadow: 0 20px 40px rgba(219, 39, 119, 0.3), 0 0 20px rgba(147, 51, 234, 0.2); }
-          100% { box-shadow: 0 25px 50px rgba(219, 39, 119, 0.4), 0 0 30px rgba(147, 51, 234, 0.3); }
-        }
-      `}</style>
     </div>
   );
 };
