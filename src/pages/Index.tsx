@@ -4,6 +4,7 @@ import PhotoCarousel from '../components/PhotoCarousel';
 import GuestBook from '../components/GuestBook';
 import PoetrySection from '../components/PoetrySection';
 import EnvelopeButton from '../components/EnvelopeButton';
+import { SplashCursor } from '../components/ui/splash-cursor';
 
 const Index = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -14,6 +15,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-amber-50">
+      {/* Splash Cursor Effect */}
+      <SplashCursor />
+      
       {/* Header */}
       <header className={`py-8 px-4 text-center bg-gradient-to-r from-pink-200 via-purple-200 to-amber-100 shadow-lg transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
         <h1 className="text-4xl md:text-6xl font-serif text-gray-800 mb-2 tracking-wide">
