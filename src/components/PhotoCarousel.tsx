@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 
@@ -17,6 +18,37 @@ const PhotoCarousel = () => {
     '/placeholder.svg?height=600&width=400&text=Foto+8',
   ];
 
+  const loadRealPhotos = async () => {
+    try {
+      // Lista de extensões de imagem suportadas
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      const photoUrls: string[] = [];
+      
+      // Tenta carregar fotos numeradas de 1 a 50
+      for (let i = 1; i <= 50; i++) {
+        for (const ext of imageExtensions) {
+          const photoUrl = `/photos/foto${i}.${ext}`;
+          try {
+            const response = await fetch(photoUrl, { method: 'HEAD' });
+            if (response.ok) {
+              photoUrls.push(photoUrl);
+              break; // Para de testar outras extensões se encontrou uma válida
+            }
+          } catch (error) {
+            // Ignora erros e continua testando
+            continue;
+          }
+        }
+      }
+      
+      // Se não encontrou fotos reais, usa placeholders
+      return photoUrls.length > 0 ? photoUrls : placeholderPhotos;
+    } catch (error) {
+      console.log('Usando fotos placeholder:', error);
+      return placeholderPhotos;
+    }
+  };
+
   const shuffleArray = (array: string[]) => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -27,12 +59,18 @@ const PhotoCarousel = () => {
   };
 
   useEffect(() => {
-    const initialPhotos = placeholderPhotos;
-    setPhotos(initialPhotos);
-    setShuffledPhotos(shuffleArray(initialPhotos));
+    const initializePhotos = async () => {
+      const loadedPhotos = await loadRealPhotos();
+      setPhotos(loadedPhotos);
+      setShuffledPhotos(shuffleArray(loadedPhotos));
+    };
+    
+    initializePhotos();
   }, []);
 
   useEffect(() => {
+    if (shuffledPhotos.length === 0) return;
+    
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % shuffledPhotos.length);
     }, 4000);
@@ -101,6 +139,13 @@ const PhotoCarousel = () => {
                 alt={`Foto ${index + 1}`}
                 className="w-full h-full object-cover rounded-xl shadow-md"
                 loading="lazy"
+                onError={(e) => {
+                  // Fallback para placeholder se a imagem não carregar
+                  const target = e.target as HTMLImageElement;
+                  if (!target.src.includes('placeholder.svg')) {
+                    target.src = '/placeholder.svg?height=600&width=400&text=Foto+Indisponível';
+                  }
+                }}
               />
             </AspectRatio>
             {index === Math.floor(7 / 2) && (
