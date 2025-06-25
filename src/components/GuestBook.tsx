@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { readMessagesFromFile, loadFromLocalStorage } from '@/utils/fileStorage';
+import MessageForm from './MessageForm';
 
 interface Message {
   name: string;
@@ -9,6 +11,7 @@ const GuestBook = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
   const defaultMessages: Message[] = [
     { name: "Maria Silva", message: "Que essa nova fase seja repleta de alegrias e conquistas! Feliz aniversário, Caroline!" },
@@ -33,8 +36,43 @@ const GuestBook = () => {
     { name: "Thiago Costa", message: "Que essa nova fase seja repleta de descobertas maravilhosas! Parabéns!" }
   ];
 
+  const loadMessages = async () => {
+    try {
+      // Try to read from file first
+      const fileMessages = await readMessagesFromFile();
+      
+      // If no file messages, try localStorage
+      if (fileMessages.length === 0) {
+        const localData = loadFromLocalStorage();
+        if (localData.messages) {
+          const localMessages = localData.messages.split('\n').map(line => {
+            const [name, ...messageParts] = line.split('|');
+            return {
+              name: name || 'Anônimo',
+              message: messageParts.join('|') || ''
+            };
+          }).filter(msg => msg.message);
+          
+          if (localMessages.length > 0) {
+            setMessages([...defaultMessages, ...localMessages]);
+            return;
+          }
+        }
+      } else {
+        setMessages([...defaultMessages, ...fileMessages]);
+        return;
+      }
+      
+      // Fallback to default messages
+      setMessages(defaultMessages);
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error);
+      setMessages(defaultMessages);
+    }
+  };
+
   useEffect(() => {
-    setMessages(defaultMessages);
+    loadMessages();
   }, []);
 
   useEffect(() => {
@@ -51,6 +89,10 @@ const GuestBook = () => {
     return () => clearInterval(interval);
   }, [messages.length]);
 
+  const handleMessageSaved = () => {
+    loadMessages(); // Reload messages when a new one is saved
+  };
+
   if (messages.length === 0) {
     return <div className="text-center text-pink-300">Carregando mensagens...</div>;
   }
@@ -58,39 +100,52 @@ const GuestBook = () => {
   const currentMessage = messages[currentMessageIndex];
 
   return (
-    <div className="flex justify-center items-center min-h-[300px]">
-      <div
-        className={`relative max-w-xl w-full mx-4 transition-all duration-500 ${
-          isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-        }`}
-      >
-        <div className="relative bg-[#1a0e18] text-pink-100 p-8 rounded-xl shadow-2xl border border-pink-900">
-          {/* Molduras decorativas */}
-          <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-pink-700"></div>
-          <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-pink-700"></div>
-          <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-pink-700"></div>
-          <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-pink-700"></div>
+    <div className="space-y-8">
+      <div className="flex justify-center items-center min-h-[300px]">
+        <div
+          className={`relative max-w-xl w-full mx-4 transition-all duration-500 ${
+            isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+          }`}
+        >
+          <div className="relative bg-[#1a0e18] text-pink-100 p-8 rounded-xl shadow-2xl border border-pink-900">
+            {/* Molduras decorativas */}
+            <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-pink-700"></div>
+            <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-pink-700"></div>
+            <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-pink-700"></div>
+            <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-pink-700"></div>
 
-          <div className="text-center mb-6">
-            <p className="text-lg leading-relaxed font-serif italic">
-              "{currentMessage.message}"
-            </p>
+            <div className="text-center mb-6">
+              <p className="text-lg leading-relaxed font-serif italic">
+                "{currentMessage.message}"
+              </p>
+            </div>
+
+            <div className="text-right">
+              <p className="font-cursive text-xl font-semibold text-rose-300">
+                - {currentMessage.name}
+              </p>
+            </div>
+
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+              <div className="w-16 h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent"></div>
+            </div>
           </div>
 
-          <div className="text-right">
-            <p className="font-cursive text-xl font-semibold text-rose-300">
-              - {currentMessage.name}
-            </p>
-          </div>
-
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-            <div className="w-16 h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent"></div>
-          </div>
+          {/* Textura de papel */}
+          <div className="absolute inset-0 bg-paper-texture opacity-10 rounded-xl pointer-events-none"></div>
         </div>
-
-        {/* Textura de papel */}
-        <div className="absolute inset-0 bg-paper-texture opacity-10 rounded-xl pointer-events-none"></div>
       </div>
+
+      <div className="text-center">
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300"
+        >
+          {showForm ? 'Fechar Formulário' : 'Adicionar Mensagem'}
+        </button>
+      </div>
+
+      {showForm && <MessageForm onMessageSaved={handleMessageSaved} />}
     </div>
   );
 };

@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { saveMessageToFile } from '@/utils/fileStorage';
 
 const EnvelopeButton = () => {
   const [isClicked, setIsClicked] = useState(false);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     setIsClicked(true);
 
+    // Save a system message indicating envelope was clicked
+    const timestamp = new Date().toLocaleString('pt-BR');
+    await saveMessageToFile('Sistema', `Envelope clicado em ${timestamp}`);
+
     setTimeout(() => {
-      alert('Mensagem enviada com sucesso! ✨');
+      alert('Mensagem registrada com sucesso! ✨');
       setIsClicked(false);
     }, 300);
   };
@@ -37,7 +42,7 @@ const EnvelopeButton = () => {
         style={glowStyle}
       >
         <Mail className={`mr-2 h-5 w-5 transition-transform duration-300 ${isClicked ? 'scale-110' : ''}`} />
-        {isClicked ? 'Enviando...' : 'Enviar Mensagem'}
+        {isClicked ? 'Registrando...' : 'Enviar Mensagem'}
 
         <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-purple-500 opacity-0 hover:opacity-10 transition-opacity duration-300 rounded-full z-[-1]" />
 
