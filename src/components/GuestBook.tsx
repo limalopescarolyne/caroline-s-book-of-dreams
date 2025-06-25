@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 
 interface Message {
@@ -11,7 +10,6 @@ const GuestBook = () => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
 
-  // Default messages if file is empty
   const defaultMessages: Message[] = [
     { name: "Maria Silva", message: "Que essa nova fase seja repleta de alegrias e conquistas! Feliz aniversário, Caroline!" },
     { name: "João Santos", message: "Aos 15 anos, que você continue brilhando como sempre! Parabéns, querida!" },
@@ -36,8 +34,6 @@ const GuestBook = () => {
   ];
 
   useEffect(() => {
-    // In production, this would load from /public/texts/mensagens.txt
-    // For now, using default messages
     setMessages(defaultMessages);
   }, []);
 
@@ -46,7 +42,6 @@ const GuestBook = () => {
 
     const interval = setInterval(() => {
       setIsVisible(false);
-      
       setTimeout(() => {
         setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
         setIsVisible(true);
@@ -57,48 +52,44 @@ const GuestBook = () => {
   }, [messages.length]);
 
   if (messages.length === 0) {
-    return <div className="text-center text-gray-500">Carregando mensagens...</div>;
+    return <div className="text-center text-pink-300">Carregando mensagens...</div>;
   }
 
   const currentMessage = messages[currentMessageIndex];
 
   return (
     <div className="flex justify-center items-center min-h-[300px]">
-      <div 
-        className={`relative max-w-md w-full mx-4 transition-all duration-500 ${
+      <div
+        className={`relative max-w-xl w-full mx-4 transition-all duration-500 ${
           isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         }`}
       >
-        {/* Vintage card background */}
-        <div className="bg-gradient-to-br from-amber-50 to-orange-100 p-8 rounded-lg shadow-2xl border-4 border-amber-200 relative">
-          {/* Decorative corners */}
-          <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-amber-400"></div>
-          <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-amber-400"></div>
-          <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-amber-400"></div>
-          <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-amber-400"></div>
-          
-          {/* Message content */}
+        <div className="relative bg-[#1a0e18] text-pink-100 p-8 rounded-xl shadow-2xl border border-pink-900">
+          {/* Molduras decorativas */}
+          <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-pink-700"></div>
+          <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-pink-700"></div>
+          <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-pink-700"></div>
+          <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-pink-700"></div>
+
           <div className="text-center mb-6">
-            <p className="text-gray-700 text-lg leading-relaxed font-serif italic">
+            <p className="text-lg leading-relaxed font-serif italic">
               "{currentMessage.message}"
             </p>
           </div>
-          
-          {/* Signature */}
+
           <div className="text-right">
-            <p className="text-gray-600 font-cursive text-xl font-semibold">
+            <p className="font-cursive text-xl font-semibold text-rose-300">
               - {currentMessage.name}
             </p>
           </div>
-          
-          {/* Decorative flourish */}
+
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-            <div className="w-16 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
+            <div className="w-16 h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent"></div>
           </div>
         </div>
-        
-        {/* Paper texture overlay */}
-        <div className="absolute inset-0 bg-paper-texture opacity-20 rounded-lg pointer-events-none"></div>
+
+        {/* Textura de papel */}
+        <div className="absolute inset-0 bg-paper-texture opacity-10 rounded-xl pointer-events-none"></div>
       </div>
     </div>
   );
