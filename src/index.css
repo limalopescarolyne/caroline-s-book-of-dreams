@@ -1,9 +1,8 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+/* 🌈 Design System: Cores, fontes e efeitos visuais */
 
 @layer base {
   :root {
@@ -38,58 +37,52 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 0%;
+    --foreground: 320 100% 92%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 8%;
+    --card-foreground: 320 100% 92%;
 
-    --popover: 222.2 84%% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 320 100% 92%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 338 35% 35%;
+    --primary-foreground: 320 100% 92%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 317 35% 20%;
+    --secondary-foreground: 320 100% 92%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 317 35% 18%;
+    --muted-foreground: 320 80% 70%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 315 30% 30%;
+    --accent-foreground: 320 100% 92%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 320 100% 92%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --border: 317 20% 25%;
+    --input: 317 20% 25%;
+    --ring: 320 60% 60%;
+
+    --sidebar-background: 315 35% 8%;
+    --sidebar-foreground: 330 80% 92%;
+    --sidebar-primary: 338 60% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 320 20% 20%;
+    --sidebar-accent-foreground: 320 80% 92%;
+    --sidebar-border: 320 15% 25%;
+    --sidebar-ring: 320 91.2% 59.8%;
   }
 }
 
@@ -97,13 +90,12 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
   }
 }
 
-/* Custom fonts and effects */
+/* ✒️ Fontes personalizadas */
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
 
 .font-cursive {
@@ -114,12 +106,11 @@
   font-family: 'Playfair Display', serif;
 }
 
-/* 3D perspective for carousel */
+/* 🔮 Efeitos visuais */
 .perspective-1000 {
   perspective: 1000px;
 }
 
-/* Paper texture effect */
 .bg-paper-texture {
   background-image: 
     radial-gradient(circle at 25px 25px, rgba(255,255,255,.2) 2%, transparent 0%), 
@@ -127,7 +118,6 @@
   background-size: 100px 100px;
 }
 
-/* Custom animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
@@ -146,17 +136,14 @@
   animation: sparkle 2s ease-in-out infinite;
 }
 
-/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* Glowing text effect */
 .glow-text {
   text-shadow: 0 0 10px rgba(219, 39, 119, 0.5);
 }
 
-/* Romantic gradient backgrounds */
 .bg-romantic {
   background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
 }
@@ -165,10 +152,9 @@ html {
   background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
 }
 
-/* Vintage card effect */
 .vintage-card {
-  background: linear-gradient(145deg, #f9f9f9, #ececec);
+  background: linear-gradient(145deg, #1a0e18, #0b0a0c);
   box-shadow: 
-    20px 20px 60px #d9d9d9,
-    -20px -20px 60px #ffffff;
+    20px 20px 60px #120d13,
+    -20px -20px 60px #1f141a;
 }
