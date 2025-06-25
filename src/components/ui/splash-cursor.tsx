@@ -90,27 +90,32 @@ function SplashCursor({
         throw new Error("WebGL not supported");
       }
 
+      // Use union type to handle both WebGL 1.0 and 2.0
+      const webglContext: WebGLRenderingContext | WebGL2RenderingContext = gl;
+
       let halfFloat: any;
       let supportLinearFiltering: any;
       if (isWebGL2) {
-        (gl as WebGL2RenderingContext).getExtension("EXT_color_buffer_float");
-        supportLinearFiltering = gl.getExtension("OES_texture_float_linear");
+        const gl2 = webglContext as WebGL2RenderingContext;
+        gl2.getExtension("EXT_color_buffer_float");
+        supportLinearFiltering = gl2.getExtension("OES_texture_float_linear");
       } else {
-        halfFloat = gl.getExtension("OES_texture_half_float");
-        supportLinearFiltering = gl.getExtension(
+        const gl1 = webglContext as WebGLRenderingContext;
+        halfFloat = gl1.getExtension("OES_texture_half_float");
+        supportLinearFiltering = gl1.getExtension(
           "OES_texture_half_float_linear"
         );
       }
-      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      webglContext.clearColor(0.0, 0.0, 0.0, 1.0);
       const halfFloatTexType = isWebGL2
-        ? (gl as WebGL2RenderingContext).HALF_FLOAT
+        ? (webglContext as WebGL2RenderingContext).HALF_FLOAT
         : halfFloat && halfFloat.HALF_FLOAT_OES;
       let formatRGBA: any;
       let formatRG: any;
       let formatR: any;
 
       if (isWebGL2) {
-        const gl2 = gl as WebGL2RenderingContext;
+        const gl2 = webglContext as WebGL2RenderingContext;
         formatRGBA = getSupportedFormat(
           gl2,
           gl2.RGBA16F,
@@ -120,14 +125,14 @@ function SplashCursor({
         formatRG = getSupportedFormat(gl2, gl2.RG16F, gl2.RG, halfFloatTexType);
         formatR = getSupportedFormat(gl2, gl2.R16F, gl2.RED, halfFloatTexType);
       } else {
-        const gl1 = gl as WebGLRenderingContext;
+        const gl1 = webglContext as WebGLRenderingContext;
         formatRGBA = getSupportedFormat(gl1, gl1.RGBA, gl1.RGBA, halfFloatTexType);
         formatRG = getSupportedFormat(gl1, gl1.RGBA, gl1.RGBA, halfFloatTexType);
         formatR = getSupportedFormat(gl1, gl1.RGBA, gl1.RGBA, halfFloatTexType);
       }
 
       return {
-        gl: gl!,
+        gl: webglContext,
         ext: {
           formatRGBA,
           formatRG,
