@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,74 +7,35 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 0 0% 0%;
-    --foreground: 320 100% 92%;
+    --background: 0 0% 5%;
+    --foreground: 210 20% 98%;
 
     --card: 0 0% 8%;
-    --card-foreground: 320 100% 92%;
+    --card-foreground: 210 20% 98%;
 
     --popover: 0 0% 10%;
-    --popover-foreground: 320 100% 92%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 338 35% 35%;
-    --primary-foreground: 320 100% 92%;
+    --primary: 315 35% 25%;
+    --primary-foreground: 210 20% 98%;
 
-    --secondary: 317 35% 20%;
-    --secondary-foreground: 320 100% 92%;
+    --secondary: 317 20% 15%;
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 317 35% 18%;
-    --muted-foreground: 320 80% 70%;
+    --muted: 317 20% 12%;
+    --muted-foreground: 320 15% 65%;
 
-    --accent: 315 30% 30%;
-    --accent-foreground: 320 100% 92%;
+    --accent: 320 25% 20%;
+    --accent-foreground: 210 20% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 320 100% 92%;
+    --destructive-foreground: 210 20% 98%;
 
-    --border: 317 20% 25%;
-    --input: 317 20% 25%;
+    --border: 317 15% 25%;
+    --input: 317 15% 25%;
     --ring: 320 60% 60%;
+
+    --radius: 0.5rem;
 
     --sidebar-background: 315 35% 8%;
     --sidebar-foreground: 330 80% 92%;
@@ -82,6 +44,45 @@
     --sidebar-accent: 320 20% 20%;
     --sidebar-accent-foreground: 320 80% 92%;
     --sidebar-border: 320 15% 25%;
+    --sidebar-ring: 320 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 0 0% 3%;
+    --foreground: 320 100% 95%;
+
+    --card: 0 0% 6%;
+    --card-foreground: 320 100% 95%;
+
+    --popover: 0 0% 8%;
+    --popover-foreground: 320 100% 95%;
+
+    --primary: 338 45% 30%;
+    --primary-foreground: 320 100% 95%;
+
+    --secondary: 317 30% 18%;
+    --secondary-foreground: 320 100% 95%;
+
+    --muted: 317 30% 15%;
+    --muted-foreground: 320 70% 75%;
+
+    --accent: 315 35% 25%;
+    --accent-foreground: 320 100% 95%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 320 100% 95%;
+
+    --border: 317 20% 28%;
+    --input: 317 20% 28%;
+    --ring: 320 70% 65%;
+
+    --sidebar-background: 315 40% 6%;
+    --sidebar-foreground: 330 85% 95%;
+    --sidebar-primary: 338 65% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 320 25% 22%;
+    --sidebar-accent-foreground: 320 85% 95%;
+    --sidebar-border: 320 18% 28%;
     --sidebar-ring: 320 91.2% 59.8%;
   }
 }
@@ -113,8 +114,8 @@
 
 .bg-paper-texture {
   background-image: 
-    radial-gradient(circle at 25px 25px, rgba(255,255,255,.2) 2%, transparent 0%), 
-    radial-gradient(circle at 75px 75px, rgba(255,255,255,.2) 2%, transparent 0%);
+    radial-gradient(circle at 25px 25px, rgba(255,255,255,.05) 2%, transparent 0%), 
+    radial-gradient(circle at 75px 75px, rgba(255,255,255,.05) 2%, transparent 0%);
   background-size: 100px 100px;
 }
 
@@ -145,16 +146,33 @@ html {
 }
 
 .bg-romantic {
-  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  background: linear-gradient(135deg, #2a1a2e 0%, #1a0e1a 100%);
 }
 
 .bg-dreamy {
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  background: linear-gradient(135deg, #1a0e1a 0%, #2a1a2e 100%);
 }
 
 .vintage-card {
   background: linear-gradient(145deg, #1a0e18, #0b0a0c);
   box-shadow: 
-    20px 20px 60px #120d13,
+    20px 20px 60px #0a0608,
     -20px -20px 60px #1f141a;
+}
+
+/* Professional dark theme additions */
+.professional-dark {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2a1a2e 100%);
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.elegant-shadow {
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(147, 51, 234, 0.1);
 }

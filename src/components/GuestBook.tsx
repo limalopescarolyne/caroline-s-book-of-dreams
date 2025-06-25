@@ -107,39 +107,39 @@ const GuestBook = () => {
             isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
           }`}
         >
-          <div className="relative bg-[#1a0e18] text-pink-100 p-8 rounded-xl shadow-2xl border border-pink-900">
+          <div className="relative glass-effect elegant-shadow text-white p-8 rounded-xl border border-purple-500/30">
             {/* Molduras decorativas */}
-            <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-pink-700"></div>
-            <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-pink-700"></div>
-            <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-pink-700"></div>
-            <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-pink-700"></div>
+            <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-pink-400/50"></div>
+            <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-pink-400/50"></div>
+            <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-pink-400/50"></div>
+            <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-pink-400/50"></div>
 
             <div className="text-center mb-6">
-              <p className="text-lg leading-relaxed font-serif italic">
+              <p className="text-lg leading-relaxed font-serif italic text-gray-100">
                 "{currentMessage.message}"
               </p>
             </div>
 
             <div className="text-right">
-              <p className="font-cursive text-xl font-semibold text-rose-300">
+              <p className="font-cursive text-xl font-semibold text-pink-300">
                 - {currentMessage.name}
               </p>
             </div>
 
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-              <div className="w-16 h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent"></div>
+              <div className="w-16 h-1 bg-gradient-to-r from-transparent via-purple-400 to-transparent"></div>
             </div>
           </div>
 
           {/* Textura de papel */}
-          <div className="absolute inset-0 bg-paper-texture opacity-10 rounded-xl pointer-events-none"></div>
+          <div className="absolute inset-0 bg-paper-texture opacity-20 rounded-xl pointer-events-none"></div>
         </div>
       </div>
 
       <div className="text-center">
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300"
+          className="glass-effect elegant-shadow bg-gradient-to-r from-pink-500/80 to-purple-600/80 hover:from-pink-600/90 hover:to-purple-700/90 text-white px-8 py-3 rounded-full font-semibold transition-all duration-300 border border-pink-400/30"
         >
           {showForm ? 'Fechar Formulário' : 'Adicionar Mensagem'}
         </button>

@@ -79,7 +79,7 @@ const PoetrySection = () => {
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
       >
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-8 rounded-xl shadow-xl border border-purple-200 relative overflow-hidden">
+        <div className="glass-effect elegant-shadow p-8 rounded-xl border border-purple-500/30 relative overflow-hidden">
           {/* Decorative elements */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-400 via-purple-400 to-pink-400"></div>
           <div className="absolute -top-2 -left-2 w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full opacity-60"></div>
@@ -87,7 +87,7 @@ const PoetrySection = () => {
           
           {/* Poem title */}
           <div className="text-center mb-6">
-            <h4 className="text-2xl font-serif text-purple-800 mb-2">
+            <h4 className="text-2xl font-serif text-white mb-2 glow-text">
               {currentPoem.title}
             </h4>
             <div className="w-16 h-0.5 bg-gradient-to-r from-pink-400 to-purple-400 mx-auto"></div>
@@ -95,19 +95,19 @@ const PoetrySection = () => {
           
           {/* Poem content */}
           <div className="text-center">
-            <p className="text-gray-700 text-lg leading-relaxed font-serif whitespace-pre-line">
+            <p className="text-gray-100 text-lg leading-relaxed font-serif whitespace-pre-line">
               {currentPoem.content}
             </p>
           </div>
           
           {/* Decorative flourishes */}
-          <div className="absolute top-4 right-4 text-purple-300 opacity-50">
+          <div className="absolute top-4 right-4 text-pink-300 opacity-50">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10 2L12.09 8.26L18 10L12.09 11.74L10 18L7.91 11.74L2 10L7.91 8.26L10 2Z"/>
             </svg>
           </div>
           
-          <div className="absolute bottom-4 left-4 text-pink-300 opacity-50">
+          <div className="absolute bottom-4 left-4 text-purple-300 opacity-50">
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10 2L12.09 8.26L18 10L12.09 11.74L10 18L7.91 11.74L2 10L7.91 8.26L10 2Z"/>
             </svg>
@@ -121,8 +121,8 @@ const PoetrySection = () => {
               key={index}
               className={`w-2 h-2 rounded-full transition-all duration-300 ${
                 index === currentPoemIndex % 5
-                  ? 'bg-purple-500 scale-125'
-                  : 'bg-purple-200'
+                  ? 'bg-purple-400 scale-125'
+                  : 'bg-purple-200/50'
               }`}
             />
           ))}
