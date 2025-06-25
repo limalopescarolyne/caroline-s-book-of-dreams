@@ -79,19 +79,20 @@ function SplashCursor({
         antialias: false,
         preserveDrawingBuffer: false,
       };
-      let gl: WebGLRenderingContext | WebGL2RenderingContext | null = canvas.getContext("webgl2", params);
+      
+      let gl: WebGLRenderingContext | WebGL2RenderingContext | null = canvas.getContext("webgl2", params) as WebGL2RenderingContext | null;
       const isWebGL2 = !!gl;
-      if (!isWebGL2)
-        gl =
-          canvas.getContext("webgl", params) ||
-          canvas.getContext("experimental-webgl", params);
+      if (!isWebGL2) {
+        gl = canvas.getContext("webgl", params) as WebGLRenderingContext | null || 
+             canvas.getContext("experimental-webgl", params) as WebGLRenderingContext | null;
+      }
       
       if (!gl) {
         throw new Error("WebGL not supported");
       }
 
-      // Use union type to handle both WebGL 1.0 and 2.0
-      const webglContext: WebGLRenderingContext | WebGL2RenderingContext = gl;
+      // Now gl is properly typed as WebGLRenderingContext | WebGL2RenderingContext
+      const webglContext = gl;
 
       let halfFloat: any;
       let supportLinearFiltering: any;
