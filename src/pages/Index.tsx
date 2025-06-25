@@ -24,7 +24,7 @@ const Index = () => {
           Livro de 15 anos
         </h1>
         <h2 className="text-2xl md:text-3xl font-light text-pink-700 italic">
-          Caroline Lopes Lima
+          Carolyne Lopes Lima
         </h2>
         <div className="mt-4 w-32 h-1 bg-gradient-to-r from-pink-400 to-purple-400 mx-auto rounded-full"></div>
       </header>
@@ -64,7 +64,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-gray-800 text-center py-6 border-t-4 border-amber-400">
         <p className="text-gray-300 text-sm md:text-base">
-          © 2025 Book Caroline Lopes Lima - Todos os direitos reservados.
+          © 2025 Book Carolyne Lopes Lima - Todos os direitos reservados.
         </p>
       </footer>
     </div>
