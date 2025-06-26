@@ -20,31 +20,46 @@ const PhotoCarousel = () => {
 
   const loadRealPhotos = async () => {
     try {
-      // Lista de extensões de imagem suportadas
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
       const photoUrls: string[] = [];
       
-      // Tenta carregar fotos no formato "foto (1).jpeg", "foto (2).jpeg", etc.
-      for (let i = 1; i <= 50; i++) {
+      // Primeiro, verifica quantos arquivos existem sequencialmente
+      let photoIndex = 1;
+      let consecutiveFailures = 0;
+      const maxConsecutiveFailures = 3; // Para se houver gaps nos números
+      
+      while (consecutiveFailures < maxConsecutiveFailures && photoIndex <= 100) {
+        let photoFound = false;
+        
         for (const ext of imageExtensions) {
-          const photoUrl = `/photos/foto (${i}).${ext}`;
+          const photoUrl = `/photos/foto (${photoIndex}).${ext}`;
           try {
             const response = await fetch(photoUrl, { method: 'HEAD' });
             if (response.ok) {
               photoUrls.push(photoUrl);
-              break; // Para de testar outras extensões se encontrou uma válida
+              photoFound = true;
+              consecutiveFailures = 0; // Reset contador quando encontra uma foto
+              console.log(`Foto encontrada: ${photoUrl}`);
+              break;
             }
           } catch (error) {
-            // Ignora erros e continua testando
             continue;
           }
         }
+        
+        if (!photoFound) {
+          consecutiveFailures++;
+        }
+        
+        photoIndex++;
       }
+      
+      console.log(`Total de fotos encontradas: ${photoUrls.length}`);
       
       // Se não encontrou fotos reais, usa placeholders
       return photoUrls.length > 0 ? photoUrls : placeholderPhotos;
     } catch (error) {
-      console.log('Usando fotos placeholder:', error);
+      console.log('Erro ao carregar fotos, usando placeholders:', error);
       return placeholderPhotos;
     }
   };
