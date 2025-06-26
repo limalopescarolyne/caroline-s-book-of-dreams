@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 
@@ -23,10 +24,10 @@ const PhotoCarousel = () => {
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
       const photoUrls: string[] = [];
       
-      // Tenta carregar fotos no formato "fofo (1).jpeg", "fofo (2).jpeg", etc.
+      // Tenta carregar fotos no formato "foto (1).jpeg", "foto (2).jpeg", etc.
       for (let i = 1; i <= 50; i++) {
         for (const ext of imageExtensions) {
-          const photoUrl = `/photos/fofo (${i}).${ext}`;
+          const photoUrl = `/photos/foto (${i}).${ext}`;
           try {
             const response = await fetch(photoUrl, { method: 'HEAD' });
             if (response.ok) {
