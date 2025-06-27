@@ -12,6 +12,7 @@ const GuestBook = () => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [randomizedMessages, setRandomizedMessages] = useState<Message[]>([]);
 
   const defaultMessages: Message[] = [
     { name: "Maria Silva", message: "Que essa nova fase seja repleta de alegrias e conquistas! Feliz aniversário, Caroline!" },
@@ -36,10 +37,23 @@ const GuestBook = () => {
     { name: "Thiago Costa", message: "Que essa nova fase seja repleta de descobertas maravilhosas! Parabéns!" }
   ];
 
+  // Function to shuffle array randomly
+  const shuffleArray = (array: Message[]): Message[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
   const loadMessages = async () => {
     try {
+      console.log('Carregando mensagens automaticamente...');
+      
       // Try to read from file first
       const fileMessages = await readMessagesFromFile();
+      let allMessages: Message[] = [];
       
       // If no file messages, try localStorage
       if (fileMessages.length === 0) {
@@ -54,20 +68,29 @@ const GuestBook = () => {
           }).filter(msg => msg.message);
           
           if (localMessages.length > 0) {
-            setMessages([...defaultMessages, ...localMessages]);
-            return;
+            allMessages = [...defaultMessages, ...localMessages];
+          } else {
+            allMessages = defaultMessages;
           }
+        } else {
+          allMessages = defaultMessages;
         }
       } else {
-        setMessages([...defaultMessages, ...fileMessages]);
-        return;
+        allMessages = [...defaultMessages, ...fileMessages];
       }
       
-      // Fallback to default messages
-      setMessages(defaultMessages);
+      // Randomize the order of messages for better user experience
+      const randomized = shuffleArray(allMessages);
+      
+      setMessages(allMessages);
+      setRandomizedMessages(randomized);
+      
+      console.log(`Total de mensagens carregadas: ${allMessages.length} (randomizadas)`);
     } catch (error) {
       console.error('Erro ao carregar mensagens:', error);
+      const randomized = shuffleArray(defaultMessages);
       setMessages(defaultMessages);
+      setRandomizedMessages(randomized);
     }
   };
 
@@ -76,28 +99,32 @@ const GuestBook = () => {
   }, []);
 
   useEffect(() => {
-    if (messages.length === 0) return;
+    if (randomizedMessages.length === 0) return;
 
     const interval = setInterval(() => {
       setIsVisible(false);
       setTimeout(() => {
-        setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
+        setCurrentMessageIndex((prev) => (prev + 1) % randomizedMessages.length);
         setIsVisible(true);
       }, 500);
-    }, 5000);
+    }, 6000); // Slower transition for better reading
 
     return () => clearInterval(interval);
-  }, [messages.length]);
+  }, [randomizedMessages.length]);
 
   const handleMessageSaved = () => {
-    loadMessages(); // Reload messages when a new one is saved
+    loadMessages(); // Reload and re-randomize messages when a new one is saved
   };
 
-  if (messages.length === 0) {
-    return <div className="text-center text-pink-300">Carregando mensagens...</div>;
+  if (randomizedMessages.length === 0) {
+    return (
+      <div className="text-center text-pink-300 animate-pulse">
+        Carregando mensagens automaticamente...
+      </div>
+    );
   }
 
-  const currentMessage = messages[currentMessageIndex];
+  const currentMessage = randomizedMessages[currentMessageIndex];
 
   return (
     <div className="space-y-8">
@@ -108,7 +135,6 @@ const GuestBook = () => {
           }`}
         >
           <div className="relative glass-effect elegant-shadow text-white p-8 rounded-xl border border-purple-500/30">
-            {/* Molduras decorativas */}
             <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-pink-400/50"></div>
             <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-pink-400/50"></div>
             <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-pink-400/50"></div>
@@ -131,7 +157,6 @@ const GuestBook = () => {
             </div>
           </div>
 
-          {/* Textura de papel */}
           <div className="absolute inset-0 bg-paper-texture opacity-20 rounded-xl pointer-events-none"></div>
         </div>
       </div>

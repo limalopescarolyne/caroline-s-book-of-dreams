@@ -1,67 +1,40 @@
 
 import React, { useState, useEffect } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { loadAndOptimizePhotos, createThumbnail } from '@/utils/imageOptimizer';
+
+interface PhotoData {
+  original: string;
+  thumbnail?: string;
+}
 
 const PhotoCarousel = () => {
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<PhotoData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [thumbnailsLoaded, setThumbnailsLoaded] = useState(false);
 
-  const placeholderPhotos = [
-    '/placeholder.svg?height=600&width=400&text=Foto+1',
-    '/placeholder.svg?height=600&width=400&text=Foto+2',
-    '/placeholder.svg?height=600&width=400&text=Foto+3',
-    '/placeholder.svg?height=600&width=400&text=Foto+4',
-    '/placeholder.svg?height=600&width=400&text=Foto+5',
-    '/placeholder.svg?height=600&width=400&text=Foto+6',
-    '/placeholder.svg?height=600&width=400&text=Foto+7',
-    '/placeholder.svg?height=600&width=400&text=Foto+8',
+  const placeholderPhotos: PhotoData[] = [
+    { original: '/placeholder.svg?height=600&width=400&text=Foto+1' },
+    { original: '/placeholder.svg?height=600&width=400&text=Foto+2' },
+    { original: '/placeholder.svg?height=600&width=400&text=Foto+3' },
+    { original: '/placeholder.svg?height=600&width=400&text=Foto+4' },
+    { original: '/placeholder.svg?height=600&width=400&text=Foto+5' },
   ];
 
   const loadPhotos = async () => {
     try {
       setIsLoading(true);
-      console.log('Iniciando carregamento de fotos...');
+      console.log('Carregando fotos automaticamente...');
       
-      const photoUrls: string[] = [];
-      const extensions = ['jpeg', 'jpg', 'png', 'webp'];
-      
-      // Carrega apenas as primeiras 20 fotos para melhorar performance
-      for (let i = 1; i <= 20; i++) {
-        let photoFound = false;
-        
-        for (const ext of extensions) {
-          const photoUrl = `/photos/foto (${i}).${ext}`;
-          
-          try {
-            // Verifica se a foto existe
-            const img = new Image();
-            img.src = photoUrl;
-            
-            await new Promise((resolve, reject) => {
-              img.onload = () => {
-                photoUrls.push(photoUrl);
-                photoFound = true;
-                console.log(`Foto carregada: ${photoUrl}`);
-                resolve(photoUrl);
-              };
-              img.onerror = () => reject();
-              
-              // Timeout para evitar espera excessiva
-              setTimeout(() => reject(), 1000);
-            });
-            
-            if (photoFound) break;
-          } catch (error) {
-            continue;
-          }
-        }
-      }
-      
-      console.log(`Total de fotos carregadas: ${photoUrls.length}`);
+      const photoUrls = await loadAndOptimizePhotos();
       
       if (photoUrls.length > 0) {
-        setPhotos(photoUrls);
+        const photoData = photoUrls.map(url => ({ original: url }));
+        setPhotos(photoData);
+        
+        // Generate thumbnails in background for better performance
+        generateThumbnails(photoData);
       } else {
         console.log('Nenhuma foto encontrada, usando placeholders');
         setPhotos(placeholderPhotos);
@@ -75,6 +48,26 @@ const PhotoCarousel = () => {
     }
   };
 
+  const generateThumbnails = async (photoData: PhotoData[]) => {
+    console.log('Gerando thumbnails otimizados...');
+    
+    const updatedPhotos = await Promise.all(
+      photoData.map(async (photo) => {
+        try {
+          const thumbnail = await createThumbnail(photo.original, 300);
+          return { ...photo, thumbnail };
+        } catch (error) {
+          console.error('Erro ao gerar thumbnail:', error);
+          return photo;
+        }
+      })
+    );
+    
+    setPhotos(updatedPhotos);
+    setThumbnailsLoaded(true);
+    console.log('Thumbnails gerados com sucesso');
+  };
+
   useEffect(() => {
     loadPhotos();
   }, []);
@@ -84,30 +77,28 @@ const PhotoCarousel = () => {
     
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % photos.length);
-    }, 3000);
+    }, 4000); // Slightly slower for better UX
 
     return () => clearInterval(interval);
   }, [photos.length]);
 
   const getPhotoStyle = (index: number) => {
-    const totalPhotos = Math.min(photos.length, 5); // Reduzido para 5 fotos visíveis
+    const totalPhotos = Math.min(photos.length, 5);
     const center = Math.floor(totalPhotos / 2);
     const distance = Math.abs(index - center);
 
     let transform = '';
     let zIndex = 10 - distance;
-    let opacity = 1 - (distance * 0.2);
-    let blur = distance * 2;
-    let scale = 1 - (distance * 0.1);
+    let opacity = 1 - (distance * 0.15);
+    let scale = 1 - (distance * 0.08);
 
     if (index < center) {
-      transform = `translateX(-${distance * 80}px) rotateY(${distance * 15}deg) scale(${scale})`;
+      transform = `translateX(-${distance * 70}px) rotateY(${distance * 12}deg) scale(${scale})`;
     } else if (index > center) {
-      transform = `translateX(${distance * 80}px) rotateY(-${distance * 15}deg) scale(${scale})`;
+      transform = `translateX(${distance * 70}px) rotateY(-${distance * 12}deg) scale(${scale})`;
     } else {
-      transform = `scale(1.1)`;
+      transform = `scale(1.05)`;
       opacity = 1;
-      blur = 0;
       zIndex = 20;
     }
 
@@ -115,19 +106,18 @@ const PhotoCarousel = () => {
       transform,
       zIndex,
       opacity,
-      filter: `blur(${blur}px)`,
-      transition: 'all 0.6s ease-in-out',
+      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
     };
   };
 
   const getVisiblePhotos = () => {
-    const visibleCount = 5; // Reduzido para melhor performance
+    const visibleCount = Math.min(5, photos.length);
     const visiblePhotos = [];
 
-    for (let i = 0; i < visibleCount && i < photos.length; i++) {
+    for (let i = 0; i < visibleCount; i++) {
       const photoIndex = (currentIndex + i) % photos.length;
       visiblePhotos.push({
-        src: photos[photoIndex],
+        photo: photos[photoIndex],
         index: i,
       });
     }
@@ -138,7 +128,9 @@ const PhotoCarousel = () => {
   if (isLoading) {
     return (
       <div className="relative h-96 md:h-[500px] flex items-center justify-center">
-        <div className="text-pink-300 text-lg">Carregando fotos...</div>
+        <div className="text-pink-300 text-lg animate-pulse">
+          Detectando e carregando fotos...
+        </div>
       </div>
     );
   }
@@ -146,16 +138,16 @@ const PhotoCarousel = () => {
   return (
     <div className="relative h-96 md:h-[500px] flex items-center justify-center overflow-hidden perspective-1000">
       <div className="relative w-full max-w-5xl mx-auto flex justify-center items-center">
-        {getVisiblePhotos().map(({ src, index }) => (
+        {getVisiblePhotos().map(({ photo, index }) => (
           <div
-            key={`${src}-${index}-${currentIndex}`}
+            key={`${photo.original}-${index}-${currentIndex}`}
             className="absolute w-36 md:w-48 h-56 md:h-64 rounded-lg shadow-xl border border-white/10 overflow-hidden cursor-pointer"
             style={getPhotoStyle(index)}
             onClick={() => setCurrentIndex((currentIndex + index) % photos.length)}
           >
             <AspectRatio ratio={3 / 4} className="overflow-hidden rounded-lg">
               <img
-                src={src}
+                src={thumbnailsLoaded && photo.thumbnail ? photo.thumbnail : photo.original}
                 alt={`Foto ${index + 1}`}
                 className="w-full h-full object-cover rounded-lg"
                 loading="lazy"
@@ -168,20 +160,20 @@ const PhotoCarousel = () => {
               />
             </AspectRatio>
             {index === Math.floor(5 / 2) && (
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-lg"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg"></div>
             )}
           </div>
         ))}
       </div>
 
-      {/* Indicadores de navegação */}
+      {/* Navigation indicators */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-        {photos.slice(0, Math.min(photos.length, 10)).map((_, index) => (
+        {photos.slice(0, Math.min(photos.length, 8)).map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
             className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              index === currentIndex % Math.min(photos.length, 10)
+              index === currentIndex % Math.min(photos.length, 8)
                 ? 'bg-pink-400 scale-125'
                 : 'bg-white/40 hover:bg-white/60'
             }`}
@@ -189,7 +181,7 @@ const PhotoCarousel = () => {
         ))}
       </div>
 
-      {/* Controles de navegação */}
+      {/* Navigation controls */}
       <button
         onClick={() => setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length)}
         className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-all duration-300"
