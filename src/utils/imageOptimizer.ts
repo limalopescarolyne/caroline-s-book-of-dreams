@@ -34,18 +34,38 @@ export const optimizeImage = (file: File, maxWidth: number = 800, maxHeight: num
   });
 };
 
+// Cache thumbnails in localStorage for faster subsequent loads
+const THUMBNAIL_CACHE_KEY = 'photo_thumbnails_cache';
+const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
+
+const getThumbnailCache = (): Record<string, { data: string; timestamp: number }> => {
+  try {
+    const cached = localStorage.getItem(THUMBNAIL_CACHE_KEY);
+    return cached ? JSON.parse(cached) : {};
+  } catch {
+    return {};
+  }
+};
+
+const setThumbnailCache = (cache: Record<string, { data: string; timestamp: number }>) => {
+  try {
+    localStorage.setItem(THUMBNAIL_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    console.warn('Could not save thumbnail cache:', error);
+  }
+};
+
 export const loadAndOptimizePhotos = async (): Promise<string[]> => {
   const photoUrls: string[] = [];
   const extensions = ['jpeg', 'jpg', 'png', 'webp'];
-  const maxPhotos = 50;
   
-  console.log('Iniciando detecção automática de fotos...');
+  console.log('Iniciando detecção rápida de fotos...');
   
-  for (let i = 1; i <= maxPhotos; i++) {
-    let photoFound = false;
-    
+  // First, quickly check common patterns in parallel
+  const checkPromises: Promise<string | null>[] = [];
+  
+  for (let i = 1; i <= 20; i++) {
     for (const ext of extensions) {
-      // Try different naming patterns
       const patterns = [
         `/photos/foto (${i}).${ext}`,
         `/photos/foto${i}.${ext}`,
@@ -54,31 +74,46 @@ export const loadAndOptimizePhotos = async (): Promise<string[]> => {
         `/photos/${i}.${ext}`
       ];
       
-      for (const photoUrl of patterns) {
-        try {
-          const response = await fetch(photoUrl, { method: 'HEAD' });
-          if (response.ok) {
-            photoUrls.push(photoUrl);
-            photoFound = true;
-            console.log(`Foto detectada: ${photoUrl}`);
-            break;
-          }
-        } catch (error) {
-          continue;
-        }
-      }
-      
-      if (photoFound) break;
+      patterns.forEach(photoUrl => {
+        checkPromises.push(
+          fetch(photoUrl, { method: 'HEAD' })
+            .then(response => response.ok ? photoUrl : null)
+            .catch(() => null)
+        );
+      });
     }
   }
+  
+  // Wait for all checks and filter valid URLs
+  const results = await Promise.all(checkPromises);
+  const validUrls = results.filter(url => url !== null) as string[];
+  
+  // Remove duplicates and sort
+  const uniqueUrls = [...new Set(validUrls)].sort((a, b) => {
+    const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+    const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+    return numA - numB;
+  });
+  
+  photoUrls.push(...uniqueUrls);
   
   console.log(`Total de fotos detectadas: ${photoUrls.length}`);
   return photoUrls;
 };
 
-// Create optimized thumbnails for better performance
+// Create optimized thumbnails with caching
 export const createThumbnail = (imageSrc: string, size: number = 200): Promise<string> => {
   return new Promise((resolve) => {
+    const cache = getThumbnailCache();
+    const cacheKey = `${imageSrc}_${size}`;
+    
+    // Check if we have a valid cached thumbnail
+    if (cache[cacheKey] && Date.now() - cache[cacheKey].timestamp < CACHE_EXPIRY) {
+      console.log(`Using cached thumbnail for ${imageSrc}`);
+      resolve(cache[cacheKey].data);
+      return;
+    }
+    
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
@@ -94,9 +129,45 @@ export const createThumbnail = (imageSrc: string, size: number = 200): Promise<s
       const y = (height - cropSize) / 2;
       
       ctx?.drawImage(img, x, y, cropSize, cropSize, 0, 0, size, size);
-      resolve(canvas.toDataURL('image/jpeg', 0.7));
+      const thumbnailData = canvas.toDataURL('image/jpeg', 0.7);
+      
+      // Cache the thumbnail
+      cache[cacheKey] = {
+        data: thumbnailData,
+        timestamp: Date.now()
+      };
+      setThumbnailCache(cache);
+      
+      resolve(thumbnailData);
+    };
+    
+    img.onerror = () => {
+      console.warn(`Failed to create thumbnail for ${imageSrc}`);
+      resolve(imageSrc); // Fallback to original
     };
     
     img.src = imageSrc;
   });
+};
+
+// Preload next images for smoother transitions
+export const preloadImages = (urls: string[], startIndex: number = 0, count: number = 3) => {
+  const preloadPromises: Promise<void>[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    const index = (startIndex + i) % urls.length;
+    const url = urls[index];
+    
+    if (url) {
+      const promise = new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        img.src = url;
+      });
+      preloadPromises.push(promise);
+    }
+  }
+  
+  return Promise.all(preloadPromises);
 };
