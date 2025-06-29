@@ -9,7 +9,87 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      admin_users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_approved: boolean
+          is_visible: boolean
+          message: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          is_visible?: boolean
+          message: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          is_visible?: boolean
+          message?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      photos: {
+        Row: {
+          file_size: number | null
+          filename: string
+          id: string
+          is_visible: boolean
+          medium_url: string | null
+          mime_type: string | null
+          original_url: string
+          thumbnail_url: string | null
+          uploaded_at: string
+        }
+        Insert: {
+          file_size?: number | null
+          filename: string
+          id?: string
+          is_visible?: boolean
+          medium_url?: string | null
+          mime_type?: string | null
+          original_url: string
+          thumbnail_url?: string | null
+          uploaded_at?: string
+        }
+        Update: {
+          file_size?: number | null
+          filename?: string
+          id?: string
+          is_visible?: boolean
+          medium_url?: string | null
+          mime_type?: string | null
+          original_url?: string
+          thumbnail_url?: string | null
+          uploaded_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

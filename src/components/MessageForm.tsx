@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { saveMessageToFile } from '@/utils/fileStorage';
+import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MessageFormProps {
   onMessageSaved: () => void;
@@ -24,15 +25,21 @@ const MessageForm = ({ onMessageSaved }: MessageFormProps) => {
     setIsSubmitting(true);
     
     try {
-      const success = await saveMessageToFile(name.trim(), message.trim());
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          name: name.trim(),
+          message: message.trim(),
+        });
       
-      if (success) {
-        alert('Mensagem salva com sucesso! ✨');
+      if (error) {
+        console.error('Erro ao salvar mensagem:', error);
+        alert('Erro ao salvar mensagem. Tente novamente.');
+      } else {
+        alert('Mensagem enviada com sucesso! Será aprovada em breve. ✨');
         setName('');
         setMessage('');
         onMessageSaved();
-      } else {
-        alert('Erro ao salvar mensagem. Tente novamente.');
       }
     } catch (error) {
       console.error('Erro:', error);
@@ -53,7 +60,7 @@ const MessageForm = ({ onMessageSaved }: MessageFormProps) => {
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
             Seu Nome
           </label>
-          <input
+          <Input
             type="text"
             id="name"
             value={name}
@@ -84,7 +91,7 @@ const MessageForm = ({ onMessageSaved }: MessageFormProps) => {
           disabled={isSubmitting}
           className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
         >
-          {isSubmitting ? 'Salvando...' : 'Salvar Mensagem'}
+          {isSubmitting ? 'Enviando...' : 'Enviar Mensagem'}
         </Button>
       </form>
     </div>

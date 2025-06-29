@@ -1,109 +1,51 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { loadAndOptimizePhotos, createThumbnail, preloadImages } from '@/utils/imageOptimizer';
+import { supabase } from '@/integrations/supabase/client';
 
-interface PhotoData {
-  original: string;
-  thumbnail?: string;
-  isLoaded?: boolean;
+interface Photo {
+  id: string;
+  filename: string;
+  original_url: string;
+  thumbnail_url?: string;
+  is_visible: boolean;
 }
 
 const PhotoCarousel = () => {
-  const [photos, setPhotos] = useState<PhotoData[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-
-  const placeholderPhotos: PhotoData[] = [
-    { original: '/placeholder.svg?height=600&width=400&text=Foto+1' },
-    { original: '/placeholder.svg?height=600&width=400&text=Foto+2' },
-    { original: '/placeholder.svg?height=600&width=400&text=Foto+3' },
-    { original: '/placeholder.svg?height=600&width=400&text=Foto+4' },
-    { original: '/placeholder.svg?height=600&width=400&text=Foto+5' },
-  ];
 
   const loadPhotos = async () => {
     try {
       setIsLoading(true);
-      setLoadingProgress(0);
-      console.log('Carregando fotos otimizadas...');
+      console.log('Carregando fotos do Supabase...');
       
-      const photoUrls = await loadAndOptimizePhotos();
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .eq('is_visible', true)
+        .order('uploaded_at', { ascending: true });
       
-      if (photoUrls.length > 0) {
-        const photoData = photoUrls.map(url => ({ original: url, isLoaded: false }));
-        setPhotos(photoData);
-        setLoadingProgress(25);
-        
-        // Generate thumbnails progressively
-        await generateThumbnailsProgressively(photoData);
-        
-        // Preload first few images
-        preloadImages(photoUrls, 0, 5);
-        
+      if (!error && data) {
+        console.log(`${data.length} fotos carregadas do banco de dados`);
+        setPhotos(data);
       } else {
-        console.log('Nenhuma foto encontrada, usando placeholders');
-        setPhotos(placeholderPhotos);
+        console.error('Erro ao carregar fotos:', error);
+        setPhotos([]);
       }
       
     } catch (error) {
       console.error('Erro ao carregar fotos:', error);
-      setPhotos(placeholderPhotos);
+      setPhotos([]);
     } finally {
       setIsLoading(false);
-      setLoadingProgress(100);
     }
-  };
-
-  const generateThumbnailsProgressively = async (photoData: PhotoData[]) => {
-    console.log('Gerando thumbnails progressivamente...');
-    
-    const totalPhotos = photoData.length;
-    let processedCount = 0;
-    
-    // Process in batches of 3 for better performance
-    const batchSize = 3;
-    for (let i = 0; i < photoData.length; i += batchSize) {
-      const batch = photoData.slice(i, i + batchSize);
-      
-      const batchPromises = batch.map(async (photo, batchIndex) => {
-        try {
-          const thumbnail = await createThumbnail(photo.original, 300);
-          const actualIndex = i + batchIndex;
-          
-          setPhotos(prev => prev.map((p, idx) => 
-            idx === actualIndex 
-              ? { ...p, thumbnail, isLoaded: true }
-              : p
-          ));
-          
-          processedCount++;
-          setLoadingProgress(25 + (processedCount / totalPhotos) * 50);
-          
-          return { ...photo, thumbnail, isLoaded: true };
-        } catch (error) {
-          console.error('Erro ao gerar thumbnail:', error);
-          processedCount++;
-          return { ...photo, isLoaded: true };
-        }
-      });
-      
-      await Promise.all(batchPromises);
-      
-      // Small delay between batches to not block UI
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    
-    console.log('Thumbnails gerados com sucesso');
   };
 
   const handleIndexChange = useCallback((newIndex: number) => {
     setCurrentIndex(newIndex);
-    
-    // Preload surrounding images
-    const photoUrls = photos.map(p => p.original);
-    preloadImages(photoUrls, newIndex, 3);
-  }, [photos]);
+  }, []);
 
   useEffect(() => {
     loadPhotos();
@@ -167,17 +109,23 @@ const PhotoCarousel = () => {
       <div className="relative h-96 md:h-[500px] flex items-center justify-center">
         <div className="text-center">
           <div className="text-pink-300 text-lg animate-pulse mb-4">
-            Carregando fotos otimizadas...
+            Carregando fotos...
           </div>
-          <div className="w-64 bg-gray-700 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-pink-400 to-purple-400 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${loadingProgress}%` }}
-            ></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (photos.length === 0) {
+    return (
+      <div className="relative h-96 md:h-[500px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-pink-300 text-lg mb-4">
+            Nenhuma foto disponível no momento
           </div>
-          <div className="text-pink-200 text-sm mt-2">
-            {Math.round(loadingProgress)}%
-          </div>
+          <p className="text-pink-200 text-sm">
+            O administrador ainda não adicionou fotos à galeria
+          </p>
         </div>
       </div>
     );
@@ -188,22 +136,20 @@ const PhotoCarousel = () => {
       <div className="relative w-full max-w-5xl mx-auto flex justify-center items-center">
         {getVisiblePhotos().map(({ photo, index }) => (
           <div
-            key={`${photo.original}-${index}-${currentIndex}`}
+            key={`${photo.id}-${index}-${currentIndex}`}
             className="absolute w-36 md:w-48 h-56 md:h-64 rounded-lg shadow-xl border border-white/10 overflow-hidden cursor-pointer"
             style={getPhotoStyle(index)}
             onClick={() => handleIndexChange((currentIndex + index) % photos.length)}
           >
             <AspectRatio ratio={3 / 4} className="overflow-hidden rounded-lg">
               <img
-                src={photo.thumbnail || photo.original}
+                src={photo.original_url}
                 alt={`Foto ${index + 1}`}
                 className="w-full h-full object-cover rounded-lg transition-opacity duration-300"
                 loading="lazy"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  if (!target.src.includes('placeholder.svg')) {
-                    target.src = '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';
-                  }
+                  target.src = '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';
                 }}
               />
             </AspectRatio>

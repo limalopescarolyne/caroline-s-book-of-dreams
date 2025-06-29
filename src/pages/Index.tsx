@@ -1,13 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import PhotoCarousel from '../components/PhotoCarousel';
 import GuestBook from '../components/GuestBook';
 import PoetrySection from '../components/PoetrySection';
 import EnvelopeButton from '../components/EnvelopeButton';
 import { SplashCursor } from '../components/ui/splash-cursor';
+import { Button } from '@/components/ui/button';
+import { LogIn, Settings } from 'lucide-react';
 
 const Index = () => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsLoaded(true);
@@ -17,6 +23,30 @@ const Index = () => {
     <div className="min-h-screen professional-dark">
       {/* Splash Cursor Effect */}
       <SplashCursor />
+      
+      {/* Admin/Auth Controls */}
+      <div className="fixed top-4 right-4 z-50 flex gap-2">
+        {user && isAdmin ? (
+          <Button
+            onClick={() => navigate('/admin')}
+            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+            size="sm"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Admin
+          </Button>
+        ) : (
+          <Button
+            onClick={() => navigate('/auth')}
+            variant="outline"
+            className="border-pink-300/30 text-pink-200 hover:bg-pink-500/10"
+            size="sm"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            Login
+          </Button>
+        )}
+      </div>
       
       {/* Header */}
       <header className={`py-12 px-4 text-center glass-effect elegant-shadow transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
