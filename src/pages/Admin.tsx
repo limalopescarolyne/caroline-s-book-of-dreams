@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +22,7 @@ interface Photo {
   filename: string;
   original_url: string;
   thumbnail_url?: string;
-  created_at: string;
+  uploaded_at: string;
   is_visible: boolean;
   file_size?: number;
 }
