@@ -51,14 +51,22 @@ const Auth = () => {
     setError('');
     
     try {
+      console.log('Iniciando criação da conta admin...');
       const result = await createAdminAccount();
+      
       if (result.success) {
         setError('');
-        // A página será redirecionada automaticamente pelo useEffect
+        console.log('Conta admin criada/configurada com sucesso');
+        // Tentar fazer login automático
+        const { error: loginError } = await signIn('admin@carolynebook.com', 'linda2010');
+        if (loginError) {
+          setError('Conta criada, mas erro no login automático. Tente fazer login manualmente.');
+        }
       } else {
-        setError(result.error?.message || 'Erro ao criar conta admin');
+        setError(result.error?.message || 'Erro ao criar/configurar conta admin');
       }
     } catch (err) {
+      console.error('Erro inesperado:', err);
       setError('Erro inesperado ao criar conta admin');
     }
     
@@ -137,15 +145,20 @@ const Auth = () => {
                 }
               </button>
               
-              <Button
-                type="button"
-                onClick={handleCreateAdminAccount}
-                disabled={loading}
-                variant="outline"
-                className="w-full border-green-300/30 text-green-200 hover:bg-green-500/10"
-              >
-                Criar Conta Admin (admin@carolynebook.com)
-              </Button>
+              <div className="border-t border-pink-200/30 pt-4">
+                <Button
+                  type="button"
+                  onClick={handleCreateAdminAccount}
+                  disabled={loading}
+                  variant="outline"
+                  className="w-full border-green-300/30 text-green-200 hover:bg-green-500/10"
+                >
+                  {loading ? 'Criando...' : 'Criar Conta Admin'}
+                </Button>
+                <p className="text-xs text-gray-400 mt-1">
+                  Email: admin@carolynebook.com | Senha: linda2010
+                </p>
+              </div>
             </div>
           </form>
         </CardContent>

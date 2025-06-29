@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,57 +41,86 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const createAdminAccount = async () => {
     try {
-      console.log('Tentando criar conta admin...');
+      console.log('Criando conta admin...');
       
-      // Tentar fazer signup sem confirmação de email
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // Primeiro, verificar se o admin já existe na tabela admin_users
+      const { data: existingAdmin, error: checkError } = await supabase
+        .from('admin_users')
+        .select('email')
+        .eq('email', 'admin@carolynebook.com')
+        .single();
+
+      // Se não existe na tabela admin_users, adicionar
+      if (checkError && checkError.code === 'PGRST116') {
+        console.log('Adicionando admin à tabela admin_users...');
+        const { error: insertError } = await supabase
+          .from('admin_users')
+          .insert({
+            email: 'admin@carolynebook.com'
+          });
+        
+        if (insertError) {
+          console.log('Erro ao adicionar admin:', insertError);
+        } else {
+          console.log('Admin adicionado à tabela com sucesso');
+        }
+      }
+
+      // Tentar fazer login direto (assumindo que o usuário já existe no auth.users)
+      console.log('Tentando login com credenciais admin...');
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: 'admin@carolynebook.com',
+        password: 'linda2010'
+      });
+
+      if (!signInError && signInData.user) {
+        console.log('Login admin realizado com sucesso');
+        return { success: true };
+      }
+
+      // Se o login falhou, tentar criar o usuário através do signup
+      console.log('Usuário não existe, tentando criar via signup...');
+      const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
         email: 'admin@carolynebook.com',
         password: 'linda2010',
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            email_confirm: true
-          }
+        email_confirm: true,
+        user_metadata: {
+          role: 'admin'
         }
       });
 
       if (signUpError) {
         console.log('Erro no signup:', signUpError);
         
-        // Se o usuário já existe, tentar fazer login
-        if (signUpError.message.includes('already registered') || signUpError.message.includes('User already registered')) {
-          console.log('Usuário já existe, tentando login...');
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: 'admin@carolynebook.com',
-            password: 'linda2010'
-          });
-          
-          if (signInError) {
-            console.log('Erro no login:', signInError);
-            return { success: false, error: signInError };
-          }
-          
+        // Como último recurso, tentar signup normal
+        const { data: normalSignUp, error: normalSignUpError } = await supabase.auth.signUp({
+          email: 'admin@carolynebook.com',
+          password: 'linda2010'
+        });
+
+        if (normalSignUpError) {
+          console.log('Erro no signup normal:', normalSignUpError);
+          return { success: false, error: normalSignUpError };
+        }
+        
+        if (normalSignUp.user) {
+          console.log('Usuário criado via signup normal');
           return { success: true };
         }
+      } else {
+        console.log('Usuário criado via admin.createUser');
         
-        return { success: false, error: signUpError };
-      }
-
-      // Se o signup foi bem-sucedido, adicionar à tabela admin_users
-      if (signUpData.user) {
-        console.log('Conta admin criada, adicionando à tabela admin_users...');
-        const { error: adminError } = await supabase
-          .from('admin_users')
-          .insert({
-            email: 'admin@carolynebook.com'
-          });
+        // Fazer login após criar
+        const { error: loginAfterCreateError } = await supabase.auth.signInWithPassword({
+          email: 'admin@carolynebook.com',
+          password: 'linda2010'
+        });
         
-        if (adminError) {
-          console.log('Erro ao adicionar admin_user (pode já existir):', adminError);
+        if (!loginAfterCreateError) {
+          return { success: true };
         }
       }
 
-      console.log('Conta admin criada com sucesso:', signUpData);
       return { success: true };
     } catch (error) {
       console.error('Erro ao criar conta admin:', error);
