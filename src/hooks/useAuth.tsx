@@ -11,6 +11,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  createAdminAccount: () => Promise<{ success: boolean; error?: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,10 +40,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const createAdminAccount = async () => {
+    try {
+      console.log('Tentando criar conta admin...');
+      
+      // Primeiro, tentar fazer signup
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: 'admin@carolynebook.com',
+        password: 'linda2010',
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (signUpError) {
+        console.log('Erro no signup:', signUpError);
+        
+        // Se o usuário já existe, tentar fazer login
+        if (signUpError.message.includes('already registered')) {
+          console.log('Usuário já existe, tentando login...');
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: 'admin@carolynebook.com',
+            password: 'linda2010'
+          });
+          
+          if (signInError) {
+            console.log('Erro no login:', signInError);
+            return { success: false, error: signInError };
+          }
+          
+          return { success: true };
+        }
+        
+        return { success: false, error: signUpError };
+      }
+
+      console.log('Conta admin criada com sucesso:', signUpData);
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao criar conta admin:', error);
+      return { success: false, error };
+    }
+  };
+
   useEffect(() => {
     // Setup auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -72,11 +117,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const signUp = async (email: string, password: string) => {
@@ -106,6 +155,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       signIn,
       signUp,
       signOut,
+      createAdminAccount,
     }}>
       {children}
     </AuthContext.Provider>

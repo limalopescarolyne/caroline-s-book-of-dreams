@@ -13,7 +13,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { signIn, signUp, user, isAdmin } = useAuth();
+  const { signIn, signUp, user, isAdmin, createAdminAccount } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -43,6 +43,25 @@ const Auth = () => {
       setError('Erro inesperado. Tente novamente.');
     }
 
+    setLoading(false);
+  };
+
+  const handleCreateAdminAccount = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await createAdminAccount();
+      if (result.success) {
+        setError('');
+        // A página será redirecionada automaticamente pelo useEffect
+      } else {
+        setError(result.error?.message || 'Erro ao criar conta admin');
+      }
+    } catch (err) {
+      setError('Erro inesperado ao criar conta admin');
+    }
+    
     setLoading(false);
   };
 
@@ -106,17 +125,27 @@ const Auth = () => {
               {loading ? 'Processando...' : (isSignUp ? 'Criar Conta' : 'Entrar')}
             </Button>
 
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-pink-300 hover:text-pink-200 text-sm"
+                className="text-pink-300 hover:text-pink-200 text-sm block w-full"
               >
                 {isSignUp 
                   ? 'Já tem conta? Faça login'
                   : 'Não tem conta? Cadastre-se'
                 }
               </button>
+              
+              <Button
+                type="button"
+                onClick={handleCreateAdminAccount}
+                disabled={loading}
+                variant="outline"
+                className="w-full border-green-300/30 text-green-200 hover:bg-green-500/10"
+              >
+                Criar Conta Admin (admin@carolynebook.com)
+              </Button>
             </div>
           </form>
         </CardContent>
