@@ -42,12 +42,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const createAdminAccount = async () => {
     try {
       console.log('Criando conta admin...');
+      const adminEmail = 'admin@admin.com';
+      const adminPassword = 'linda2010';
       
       // Primeiro, verificar se o admin já existe na tabela admin_users
       const { data: existingAdmin, error: checkError } = await supabase
         .from('admin_users')
         .select('email')
-        .eq('email', 'admin@carolynebook.com')
+        .eq('email', adminEmail)
         .single();
 
       // Se não existe na tabela admin_users, adicionar
@@ -56,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { error: insertError } = await supabase
           .from('admin_users')
           .insert({
-            email: 'admin@carolynebook.com'
+            email: adminEmail
           });
         
         if (insertError) {
@@ -66,59 +68,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
 
-      // Tentar fazer login direto (assumindo que o usuário já existe no auth.users)
-      console.log('Tentando login com credenciais admin...');
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: 'admin@carolynebook.com',
-        password: 'linda2010'
+      // Tentar fazer signup primeiro (criar o usuário)
+      console.log('Tentando criar usuário admin...');
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: adminEmail,
+        password: adminPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
       });
 
-      if (!signInError && signInData.user) {
-        console.log('Login admin realizado com sucesso');
-        return { success: true };
+      if (signUpError && signUpError.message !== 'User already registered') {
+        console.log('Erro no signup:', signUpError);
+        return { success: false, error: signUpError };
       }
 
-      // Se o login falhou, tentar criar o usuário através do signup
-      console.log('Usuário não existe, tentando criar via signup...');
-      const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
-        email: 'admin@carolynebook.com',
-        password: 'linda2010',
-        email_confirm: true,
-        user_metadata: {
-          role: 'admin'
-        }
+      // Fazer login após criar (ou se já existir)
+      console.log('Fazendo login com conta admin...');
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: adminEmail,
+        password: adminPassword
       });
 
-      if (signUpError) {
-        console.log('Erro no signup:', signUpError);
-        
-        // Como último recurso, tentar signup normal
-        const { data: normalSignUp, error: normalSignUpError } = await supabase.auth.signUp({
-          email: 'admin@carolynebook.com',
-          password: 'linda2010'
-        });
+      if (signInError) {
+        console.log('Erro no login:', signInError);
+        return { success: false, error: signInError };
+      }
 
-        if (normalSignUpError) {
-          console.log('Erro no signup normal:', normalSignUpError);
-          return { success: false, error: normalSignUpError };
-        }
-        
-        if (normalSignUp.user) {
-          console.log('Usuário criado via signup normal');
-          return { success: true };
-        }
-      } else {
-        console.log('Usuário criado via admin.createUser');
-        
-        // Fazer login após criar
-        const { error: loginAfterCreateError } = await supabase.auth.signInWithPassword({
-          email: 'admin@carolynebook.com',
-          password: 'linda2010'
-        });
-        
-        if (!loginAfterCreateError) {
-          return { success: true };
-        }
+      if (signInData.user) {
+        console.log('Login admin realizado com sucesso');
+        return { success: true };
       }
 
       return { success: true };

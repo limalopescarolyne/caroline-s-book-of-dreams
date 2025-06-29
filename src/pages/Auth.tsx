@@ -57,11 +57,6 @@ const Auth = () => {
       if (result.success) {
         setError('');
         console.log('Conta admin criada/configurada com sucesso');
-        // Tentar fazer login automático
-        const { error: loginError } = await signIn('admin@carolynebook.com', 'linda2010');
-        if (loginError) {
-          setError('Conta criada, mas erro no login automático. Tente fazer login manualmente.');
-        }
       } else {
         setError(result.error?.message || 'Erro ao criar/configurar conta admin');
       }
@@ -156,7 +151,7 @@ const Auth = () => {
                   {loading ? 'Criando...' : 'Criar Conta Admin'}
                 </Button>
                 <p className="text-xs text-gray-400 mt-1">
-                  Email: admin@carolynebook.com | Senha: linda2010
+                  Email: admin@admin.com | Senha: linda2010
                 </p>
               </div>
             </div>
