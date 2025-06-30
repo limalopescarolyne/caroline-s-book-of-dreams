@@ -9,131 +9,131 @@ export const useAuthState = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAdminStatus = async (userEmail: string) => {
+  const checkAdminStatus = async (userEmail: string): Promise<boolean> => {
     try {
       console.log('Verificando status admin para:', userEmail);
       const { data, error } = await supabase
         .from('admin_users')
         .select('email')
         .eq('email', userEmail)
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         console.log('Usuário é admin:', userEmail);
-        setIsAdmin(true);
+        return true;
       } else {
-        console.log('Usuário não é admin:', userEmail, error);
-        setIsAdmin(false);
+        console.log('Usuário não é admin:', userEmail);
+        return false;
       }
     } catch (error) {
-      console.log('Erro ao verificar status admin:', error);
-      setIsAdmin(false);
+      console.error('Erro ao verificar status admin:', error);
+      return false;
     }
   };
 
-  const checkAndCreateFirstAdmin = async () => {
-    if (!user?.email) return;
-
+  const createFirstAdmin = async (userEmail: string): Promise<boolean> => {
     try {
       console.log('Verificando se existe admin...');
       
       const { data: existingAdmins, error: checkError } = await supabase
         .from('admin_users')
-        .select('email');
+        .select('email', { count: 'exact' });
 
       if (checkError) {
         console.error('Erro ao verificar admins existentes:', checkError);
-        return;
+        return false;
       }
 
       if (!existingAdmins || existingAdmins.length === 0) {
-        console.log('Nenhum admin encontrado, tornando usuário atual admin:', user.email);
+        console.log('Nenhum admin encontrado, criando primeiro admin:', userEmail);
         
         const { error: insertError } = await supabase
           .from('admin_users')
-          .insert({ email: user.email });
+          .insert({ email: userEmail });
 
         if (insertError) {
           console.error('Erro ao criar admin:', insertError);
+          return false;
         } else {
-          console.log('Admin criado com sucesso:', user.email);
-          setIsAdmin(true);
+          console.log('Primeiro admin criado com sucesso:', userEmail);
+          return true;
         }
-      } else {
-        console.log('Já existem admins cadastrados:', existingAdmins.length);
       }
+      
+      return false;
     } catch (error) {
-      console.error('Erro ao verificar/criar primeiro admin:', error);
+      console.error('Erro ao criar primeiro admin:', error);
+      return false;
     }
   };
 
-  useEffect(() => {
-    let mounted = true;
+  const handleAuthChange = async (session: Session | null) => {
+    console.log('Auth state changed:', session?.user?.email);
+    
+    setSession(session);
+    setUser(session?.user ?? null);
+    
+    if (session?.user?.email) {
+      try {
+        // Primeiro, tentar criar admin se for o primeiro usuário
+        const wasCreatedAsAdmin = await createFirstAdmin(session.user.email);
+        
+        // Depois verificar se é admin
+        const adminStatus = await checkAdminStatus(session.user.email);
+        
+        setIsAdmin(wasCreatedAsAdmin || adminStatus);
+        console.log('Status admin final:', wasCreatedAsAdmin || adminStatus);
+      } catch (error) {
+        console.error('Erro no processo de autenticação:', error);
+        setIsAdmin(false);
+      }
+    } else {
+      setIsAdmin(false);
+    }
+    
+    setLoading(false);
+  };
 
+  useEffect(() => {
+    console.log('Inicializando auth state...');
+    
+    // Configurar listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
-        
-        console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user?.email) {
-          await checkAdminStatus(session.user.email);
-          
-          setTimeout(async () => {
-            if (mounted) {
-              await checkAndCreateFirstAdmin();
-            }
-          }, 1000);
-        } else {
-          setIsAdmin(false);
-        }
-        
-        setLoading(false);
+        console.log('Auth event:', event);
+        await handleAuthChange(session);
       }
     );
 
+    // Inicializar estado
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!mounted) return;
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user?.email) {
-          await checkAdminStatus(session.user.email);
-          setTimeout(async () => {
-            if (mounted) {
-              await checkAndCreateFirstAdmin();
-            }
-          }, 1000);
+        if (error) {
+          console.error('Erro ao obter sessão:', error);
+          setLoading(false);
+          return;
         }
         
-        setLoading(false);
+        await handleAuthChange(session);
       } catch (error) {
         console.error('Erro ao inicializar auth:', error);
-        if (mounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     initializeAuth();
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
-  }, [user?.email]);
+  }, []);
 
   return {
     user,
     session,
     isAdmin,
-    loading,
-    checkAdminStatus,
-    checkAndCreateFirstAdmin
+    loading
   };
 };

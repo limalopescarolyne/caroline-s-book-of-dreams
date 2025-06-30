@@ -2,9 +2,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { createThumbnail, optimizeForCarousel } from '@/utils/imageProcessing';
+import { usePhotos } from '@/hooks/usePhotos';
 
 interface PhotoUploadProps {
   onUploadComplete: () => void;
@@ -12,105 +11,70 @@ interface PhotoUploadProps {
 
 const PhotoUpload = ({ onUploadComplete }: PhotoUploadProps) => {
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState('');
   const { toast } = useToast();
+  const { uploadPhoto } = usePhotos();
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setUploading(true);
+    setProgress('Iniciando upload...');
 
     try {
-      for (const file of Array.from(files)) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        
-        // Criar thumbnail
-        const thumbnailBlob = await createThumbnail(file);
-        const thumbnailFileName = `thumb_${fileName}`;
-        
-        // Otimizar para carousel
-        const carouselBlob = await optimizeForCarousel(file);
-        const carouselFileName = `carousel_${fileName}`;
-        
-        // Upload da imagem original
-        const { error: originalError } = await supabase.storage
-          .from('photos')
-          .upload(`originals/${fileName}`, file);
+      const fileArray = Array.from(files);
+      let successCount = 0;
+      let errorCount = 0;
 
-        if (originalError) {
-          console.error('Erro no upload original:', originalError);
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        setProgress(`Processando ${i + 1}/${fileArray.length}: ${file.name}`);
+        
+        // Validar arquivo
+        if (!file.type.startsWith('image/')) {
+          console.warn(`Arquivo ${file.name} não é uma imagem válida`);
+          errorCount++;
           continue;
         }
 
-        // Upload do thumbnail
-        const { error: thumbError } = await supabase.storage
-          .from('photos')
-          .upload(`thumbnails/${thumbnailFileName}`, thumbnailBlob!);
-
-        if (thumbError) {
-          console.error('Erro no upload thumbnail:', thumbError);
+        if (file.size > 50 * 1024 * 1024) { // 50MB limite
+          console.warn(`Arquivo ${file.name} é muito grande (máximo 50MB)`);
+          errorCount++;
+          continue;
         }
 
-        // Upload da versão carousel
-        const { error: carouselError } = await supabase.storage
-          .from('photos')
-          .upload(`carousel/${carouselFileName}`, carouselBlob!);
-
-        if (carouselError) {
-          console.error('Erro no upload carousel:', carouselError);
-        }
-
-        // URLs públicas
-        const { data: { publicUrl: originalUrl } } = supabase.storage
-          .from('photos')
-          .getPublicUrl(`originals/${fileName}`);
-
-        const { data: { publicUrl: thumbnailUrl } } = supabase.storage
-          .from('photos')
-          .getPublicUrl(`thumbnails/${thumbnailFileName}`);
-
-        const { data: { publicUrl: carouselUrl } } = supabase.storage
-          .from('photos')
-          .getPublicUrl(`carousel/${carouselFileName}`);
-
-        // Inserir registro na tabela
-        const { error: insertError } = await supabase
-          .from('photos')
-          .insert({
-            filename: fileName,
-            original_url: originalUrl,
-            thumbnail_url: thumbnailUrl,
-            carousel_url: carouselUrl,
-            file_size: file.size,
-            mime_type: file.type
-          });
-
-        if (insertError) {
-          console.error('Erro ao inserir registro:', insertError);
-          toast({
-            title: "Erro",
-            description: `Erro ao registrar ${file.name} no banco`,
-            variant: "destructive",
-          });
+        const success = await uploadPhoto(file);
+        if (success) {
+          successCount++;
+        } else {
+          errorCount++;
         }
       }
 
-      toast({
-        title: "Sucesso",
-        description: "Upload concluído com sucesso",
-      });
-      
-      onUploadComplete();
+      if (successCount > 0) {
+        toast({
+          title: "Upload concluído",
+          description: `${successCount} foto(s) processada(s) com sucesso${errorCount > 0 ? `, ${errorCount} erro(s)` : ''}`,
+        });
+        onUploadComplete();
+      } else {
+        toast({
+          title: "Erro no upload",
+          description: "Nenhuma foto foi processada com sucesso",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Erro geral no upload:', error);
       toast({
         title: "Erro",
-        description: "Erro geral durante o upload",
+        description: "Erro inesperado durante o upload",
         variant: "destructive",
       });
     } finally {
       setUploading(false);
+      setProgress('');
       e.target.value = '';
     }
   };
@@ -120,22 +84,24 @@ const PhotoUpload = ({ onUploadComplete }: PhotoUploadProps) => {
       <CardHeader>
         <CardTitle className="text-white">Upload de Fotos</CardTitle>
         <CardDescription className="text-pink-200">
-          Selecione múltiplas fotos. O sistema criará automaticamente versões otimizadas.
+          Selecione múltiplas fotos (máximo 50MB cada). Elas serão otimizadas automaticamente.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-4">
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="text-white"
-            disabled={uploading}
-          />
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100"
+              disabled={uploading}
+            />
+          </div>
           {uploading && (
             <div className="text-pink-300 animate-pulse">
-              Processando e fazendo upload...
+              {progress}
             </div>
           )}
         </div>

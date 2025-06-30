@@ -56,35 +56,44 @@ export type Database = {
       }
       photos: {
         Row: {
+          carousel_data: string | null
           file_size: number | null
           filename: string
           id: string
           is_visible: boolean
           medium_url: string | null
           mime_type: string | null
+          original_data: string | null
           original_url: string
+          thumbnail_data: string | null
           thumbnail_url: string | null
           uploaded_at: string
         }
         Insert: {
+          carousel_data?: string | null
           file_size?: number | null
           filename: string
           id?: string
           is_visible?: boolean
           medium_url?: string | null
           mime_type?: string | null
+          original_data?: string | null
           original_url: string
+          thumbnail_data?: string | null
           thumbnail_url?: string | null
           uploaded_at?: string
         }
         Update: {
+          carousel_data?: string | null
           file_size?: number | null
           filename?: string
           id?: string
           is_visible?: boolean
           medium_url?: string | null
           mime_type?: string | null
+          original_data?: string | null
           original_url?: string
+          thumbnail_data?: string | null
           thumbnail_url?: string | null
           uploaded_at?: string
         }
@@ -95,7 +104,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_photo_urls: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
