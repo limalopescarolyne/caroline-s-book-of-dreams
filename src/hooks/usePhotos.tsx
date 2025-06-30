@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -51,18 +50,20 @@ export const usePhotos = () => {
     }
   };
 
-  const uploadPhoto = async (file: File): Promise<boolean> => {
+const uploadPhoto = async (file: File): Promise<boolean> => {
   try {
+    console.log('Iniciando upload da imagem...');
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
     const filePath = `admin-uploads/${fileName}`;
 
-    // Upload direto para o bucket 'photos'
+    // Upload para o bucket Supabase
+    console.log('Fazendo upload para Supabase Storage...');
     const { error: uploadError } = await supabase.storage
       .from('photos')
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
       });
 
     if (uploadError) {
@@ -70,7 +71,8 @@ export const usePhotos = () => {
       return false;
     }
 
-    // Inserir apenas os metadados no banco
+    console.log('Upload concluído. Inserindo metadados no banco...');
+
     const { error: dbError } = await supabase
       .from('photos')
       .insert({
@@ -79,20 +81,23 @@ export const usePhotos = () => {
         file_size: file.size,
         mime_type: file.type,
         uploaded_at: new Date().toISOString(),
-        is_visible: true
+        is_visible: true,
       });
 
     if (dbError) {
-      console.error('Erro ao salvar metadados:', dbError);
+      console.error('Erro ao salvar metadados no banco:', dbError);
       return false;
     }
 
+    console.log('Upload e inserção concluídos com sucesso.');
+    await loadPhotos(); // atualiza a galeria
     return true;
   } catch (error) {
     console.error('Erro geral no upload:', error);
     return false;
   }
 };
+
 
   const toggleVisibility = async (id: string, visible: boolean): Promise<boolean> => {
     try {
