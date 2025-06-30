@@ -22,7 +22,13 @@ const PhotoCarousel = () => {
   const maxPhotos = settings.carouselPhotosCount || 5;
 
   const getImageUrl = (photo: Photo): string => {
+    if (!photo?.path) {
+      console.warn('Path da imagem ausente:', photo);
+      return '/placeholder.svg';
+    }
+  
     const { data } = supabase.storage.from('photos').getPublicUrl(photo.path);
+    console.log('URL da imagem:', data?.publicUrl);
     return data?.publicUrl || '/placeholder.svg';
   };
 
