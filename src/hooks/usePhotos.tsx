@@ -52,49 +52,47 @@ export const usePhotos = () => {
   };
 
   const uploadPhoto = async (file: File): Promise<boolean> => {
-    try {
-      console.log(`Processando ${file.name}...`);
-      
-      // Processar múltiplas resoluções da imagem
-      const [originalBlob, thumbnailBlob, carouselBlob] = await Promise.all([
-        Promise.resolve(file),
-        createThumbnail(file),
-        optimizeForCarousel(file)
-      ]);
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+    const filePath = `admin-uploads/${fileName}`;
 
-      // Converter todas para base64
-      const [originalBase64, thumbnailBase64, carouselBase64] = await Promise.all([
-        blobToBase64(originalBlob),
-        blobToBase64(thumbnailBlob),
-        blobToBase64(carouselBlob)
-      ]);
+    // Upload direto para o bucket 'photos'
+    const { error: uploadError } = await supabase.storage
+      .from('photos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
-      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
-
-      // Inserir no banco
-      const { error } = await supabase
-        .from('photos')
-        .insert({
-          filename: fileName,
-          original_data: originalBase64,
-          thumbnail_data: thumbnailBase64,
-          carousel_data: carouselBase64,
-          file_size: file.size,
-          mime_type: file.type
-        });
-
-      if (error) {
-        console.error('Erro ao inserir foto:', error);
-        return false;
-      }
-
-      console.log(`Foto ${file.name} processada com sucesso`);
-      return true;
-    } catch (error) {
-      console.error('Erro ao processar foto:', error);
+    if (uploadError) {
+      console.error('Erro ao enviar para storage:', uploadError);
       return false;
     }
-  };
+
+    // Inserir apenas os metadados no banco
+    const { error: dbError } = await supabase
+      .from('photos')
+      .insert({
+        filename: fileName,
+        path: filePath,
+        file_size: file.size,
+        mime_type: file.type,
+        uploaded_at: new Date().toISOString(),
+        is_visible: true
+      });
+
+    if (dbError) {
+      console.error('Erro ao salvar metadados:', dbError);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erro geral no upload:', error);
+    return false;
+  }
+};
 
   const toggleVisibility = async (id: string, visible: boolean): Promise<boolean> => {
     try {
