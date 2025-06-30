@@ -34,40 +34,35 @@ const PhotoCarousel = () => {
 
 const loadPhotos = useCallback(async () => {
   setIsLoading(true);
-  console.log('🔄 Iniciando carregamento de fotos visíveis...');
+  console.log('🔄 Carregando fotos (sem esperar sessão)...');
 
   try {
-    console.log('⏳ Antes do auth.getSession...');
-    const sessionResult = await supabase.auth.getSession();
-    console.log('✅ Sessão:', sessionResult);
-
-    console.log('⏳ Antes da consulta à tabela photos...');
-    const result = await supabase
+    const { data, error, status } = await supabase
       .from('photos')
       .select('*')
       .eq('is_visible', true)
       .order('uploaded_at', { ascending: true });
 
-    console.log('📦 Resultado da consulta:', result);
+    console.log('📦 Resultado Supabase:', { status, error, data });
 
-    if (result.error) {
-      console.error('❌ Erro na consulta:', result.error);
+    if (error) {
+      console.error('❌ Erro na consulta:', error);
       setPhotos([]);
-    } else if (result.data) {
-      console.log(`✅ ${result.data.length} fotos carregadas`);
-      setPhotos(result.data);
+    } else if (data && Array.isArray(data)) {
+      setPhotos(data);
+      console.log(`✅ ${data.length} fotos carregadas`);
     } else {
-      console.warn('⚠️ Consulta sem erro e sem dados');
+      console.warn('⚠️ Nenhum dado retornado');
       setPhotos([]);
     }
   } catch (err) {
     console.error('🔥 Erro inesperado:', err);
     setPhotos([]);
   } finally {
-    console.log('✅ Finalizando carregamento');
     setIsLoading(false);
   }
 }, []);
+
 
 
 
