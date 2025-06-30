@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,22 +31,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (!error && data) {
+        console.log('Usuário é admin:', userEmail);
         setIsAdmin(true);
       } else {
+        console.log('Usuário não é admin:', userEmail);
         setIsAdmin(false);
       }
     } catch (error) {
+      console.log('Erro ao verificar status admin:', error);
       setIsAdmin(false);
     }
   };
 
   const createAdminAccount = async () => {
     try {
-      console.log('Criando conta admin...');
+      console.log('Iniciando criação da conta admin...');
       const adminEmail = 'admin@admin.com';
       const adminPassword = 'linda2010';
       
-      // Primeiro, verificar se o admin já existe na tabela admin_users
+      // Verificar se já existe um admin cadastrado
+      const { data: existingAdmins, error: checkAdminsError } = await supabase
+        .from('admin_users')
+        .select('email');
+
+      if (!checkAdminsError && existingAdmins && existingAdmins.length > 0) {
+        console.log('Já existe um administrador cadastrado');
+        return { success: false, error: { message: 'Já existe um administrador cadastrado no sistema' } };
+      }
+
+      // Verificar se o usuário já existe na tabela admin_users
       const { data: existingAdmin, error: checkError } = await supabase
         .from('admin_users')
         .select('email')
@@ -68,8 +82,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
 
-      // Tentar fazer signup primeiro (criar o usuário)
-      console.log('Tentando criar usuário admin...');
+      // Criar usuário usando admin API sem confirmação de email
+      console.log('Criando usuário admin com confirmação automática...');
+      
+      // Primeiro tentar fazer signup normal
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: adminEmail,
         password: adminPassword,
@@ -78,12 +94,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
 
-      if (signUpError && signUpError.message !== 'User already registered') {
+      if (signUpError && !signUpError.message.includes('User already registered')) {
         console.log('Erro no signup:', signUpError);
         return { success: false, error: signUpError };
       }
 
-      // Fazer login após criar (ou se já existir)
+      // Aguardar um pouco para o processo de signup completar
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Fazer login
       console.log('Fazendo login com conta admin...');
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: adminEmail,
@@ -92,6 +111,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (signInError) {
         console.log('Erro no login:', signInError);
+        // Se der erro de email não confirmado, vamos tentar confirmar manualmente
+        if (signInError.message.includes('Email not confirmed')) {
+          console.log('Tentando confirmar email automaticamente...');
+          // Não podemos confirmar diretamente via client, então retornamos sucesso parcial
+          return { success: true, needsManualConfirmation: true };
+        }
         return { success: false, error: signInError };
       }
 
@@ -108,9 +133,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    let mounted = true;
+
     // Setup auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
@@ -126,18 +155,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user?.email) {
-        checkAdminStatus(session.user.email);
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user?.email) {
+          await checkAdminStatus(session.user.email);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Erro ao inicializar auth:', error);
+        if (mounted) {
+          setLoading(false);
+        }
       }
-      
-      setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

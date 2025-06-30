@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -12,6 +13,8 @@ const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hasAdminUser, setHasAdminUser] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   const { signIn, signUp, user, isAdmin, createAdminAccount } = useAuth();
   const navigate = useNavigate();
@@ -25,6 +28,30 @@ const Auth = () => {
       }
     }
   }, [user, isAdmin, navigate]);
+
+  // Verificar se já existe um administrador
+  useEffect(() => {
+    const checkExistingAdmin = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('email');
+        
+        if (!error && data && data.length > 0) {
+          setHasAdminUser(true);
+        } else {
+          setHasAdminUser(false);
+        }
+      } catch (err) {
+        console.error('Erro ao verificar admin existente:', err);
+        setHasAdminUser(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+
+    checkExistingAdmin();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +83,14 @@ const Auth = () => {
       
       if (result.success) {
         setError('');
+        setHasAdminUser(true);
         console.log('Conta admin criada/configurada com sucesso');
+        
+        if (result.needsManualConfirmation) {
+          setError('Conta admin criada! Aguarde alguns segundos e tente fazer login com: admin@admin.com / linda2010');
+        } else {
+          // Se criou com sucesso e fez login, a navegação será feita automaticamente pelo useEffect
+        }
       } else {
         setError(result.error?.message || 'Erro ao criar/configurar conta admin');
       }
@@ -67,6 +101,16 @@ const Auth = () => {
     
     setLoading(false);
   };
+
+  if (checkingAdmin) {
+    return (
+      <div className="min-h-screen professional-dark flex items-center justify-center p-4">
+        <div className="text-pink-300 text-lg animate-pulse">
+          Verificando sistema...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen professional-dark flex items-center justify-center p-4">
@@ -140,20 +184,36 @@ const Auth = () => {
                 }
               </button>
               
-              <div className="border-t border-pink-200/30 pt-4">
-                <Button
-                  type="button"
-                  onClick={handleCreateAdminAccount}
-                  disabled={loading}
-                  variant="outline"
-                  className="w-full border-green-300/30 text-green-200 hover:bg-green-500/10"
-                >
-                  {loading ? 'Criando...' : 'Criar Conta Admin'}
-                </Button>
-                <p className="text-xs text-gray-400 mt-1">
-                  Email: admin@admin.com | Senha: linda2010
-                </p>
-              </div>
+              {!hasAdminUser && (
+                <div className="border-t border-pink-200/30 pt-4">
+                  <Button
+                    type="button"
+                    onClick={handleCreateAdminAccount}
+                    disabled={loading}
+                    variant="outline"
+                    className="w-full border-green-300/30 text-green-200 hover:bg-green-500/10"
+                  >
+                    {loading ? 'Criando...' : 'Criar Conta Admin'}
+                  </Button>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Email: admin@admin.com | Senha: linda2010
+                  </p>
+                  <p className="text-xs text-yellow-400 mt-1">
+                    ⚠️ Este botão aparece apenas uma vez
+                  </p>
+                </div>
+              )}
+              
+              {hasAdminUser && (
+                <div className="border-t border-pink-200/30 pt-4">
+                  <p className="text-xs text-green-400">
+                    ✓ Conta de administrador já configurada
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Use: admin@admin.com | linda2010 para acessar o painel
+                  </p>
+                </div>
+              )}
             </div>
           </form>
         </CardContent>
