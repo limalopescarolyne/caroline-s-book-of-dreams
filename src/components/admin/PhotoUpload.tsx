@@ -84,7 +84,7 @@ const PhotoUpload = ({ onUploadComplete }: PhotoUploadProps) => {
       <CardHeader>
         <CardTitle className="text-white">Upload de Fotos</CardTitle>
         <CardDescription className="text-pink-200">
-          Selecione múltiplas fotos (máximo 50MB cada). Elas serão otimizadas automaticamente.
+          Selecione múltiplas fotos (máximo 50MB cada). Elas serão otimizadas automaticamente em 3 resoluções.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -7,12 +7,9 @@ import { createImageUrl } from '@/utils/imageProcessing';
 interface Photo {
   id: string;
   filename: string;
-  original_url?: string;
-  thumbnail_url?: string;
-  carousel_url?: string;
-  original_data?: string;
-  thumbnail_data?: string;
-  carousel_data?: string;
+  original_data: string;
+  thumbnail_data: string;
+  carousel_data: string;
   is_visible: boolean;
   mime_type?: string;
 }
@@ -24,25 +21,11 @@ const PhotoCarousel = () => {
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
 
   const getImageSrc = useCallback((photo: Photo): string => {
-    // Verificar se já temos URL criada para esta foto
     const existingUrl = imageUrls.get(photo.id);
     if (existingUrl) return existingUrl;
 
-    let newUrl: string;
-
-    // Priorizar dados do carousel para melhor performance
-    if (photo.carousel_data) {
-      newUrl = createImageUrl(photo.carousel_data, photo.mime_type);
-    } else if (photo.thumbnail_data) {
-      newUrl = createImageUrl(photo.thumbnail_data, photo.mime_type);
-    } else if (photo.original_data) {
-      newUrl = createImageUrl(photo.original_data, photo.mime_type);
-    } else {
-      // Fallback para URLs antigas
-      newUrl = photo.carousel_url || photo.thumbnail_url || photo.original_url || '/placeholder.svg';
-    }
-
-    // Armazenar URL criada para reutilizar
+    const newUrl = createImageUrl(photo.carousel_data, photo.mime_type);
+    
     if (newUrl.startsWith('blob:')) {
       setImageUrls(prev => new Map(prev.set(photo.id, newUrl)));
     }
@@ -94,7 +77,6 @@ const PhotoCarousel = () => {
   useEffect(() => {
     loadPhotos();
     
-    // Cleanup URLs ao desmontar componente
     return () => {
       imageUrls.forEach(url => {
         if (url.startsWith('blob:')) {

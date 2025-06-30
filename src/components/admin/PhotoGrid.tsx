@@ -9,12 +9,9 @@ import { createImageUrl } from '@/utils/imageProcessing';
 interface Photo {
   id: string;
   filename: string;
-  original_url?: string;
-  thumbnail_url?: string;
-  carousel_url?: string;
-  original_data?: string;
-  thumbnail_data?: string;
-  carousel_data?: string;
+  original_data: string;
+  thumbnail_data: string;
+  carousel_data: string;
   uploaded_at: string;
   is_visible: boolean;
   file_size?: number;
@@ -29,19 +26,7 @@ interface PhotoGridProps {
 
 const PhotoGrid = ({ photos, onToggleVisibility, onDelete }: PhotoGridProps) => {
   const getImageSrc = (photo: Photo): string => {
-    // Priorizar dados binários sobre URLs
-    if (photo.thumbnail_data) {
-      return createImageUrl(photo.thumbnail_data, photo.mime_type);
-    }
-    if (photo.carousel_data) {
-      return createImageUrl(photo.carousel_data, photo.mime_type);
-    }
-    if (photo.original_data) {
-      return createImageUrl(photo.original_data, photo.mime_type);
-    }
-    
-    // Fallback para URLs (dados antigos)
-    return photo.thumbnail_url || photo.carousel_url || photo.original_url || '/placeholder.svg';
+    return createImageUrl(photo.thumbnail_data, photo.mime_type);
   };
 
   const formatFileSize = (bytes?: number): string => {
@@ -86,14 +71,12 @@ const PhotoGrid = ({ photos, onToggleVisibility, onDelete }: PhotoGridProps) => 
                     e.currentTarget.src = '/placeholder.svg';
                   }}
                 />
-                {photo.original_data && (
-                  <Badge 
-                    variant="secondary" 
-                    className="absolute top-2 right-2 bg-green-600 text-white"
-                  >
-                    DB
-                  </Badge>
-                )}
+                <Badge 
+                  variant="secondary" 
+                  className="absolute top-2 right-2 bg-green-600 text-white"
+                >
+                  3 Res
+                </Badge>
               </div>
               
               <div className="space-y-2">

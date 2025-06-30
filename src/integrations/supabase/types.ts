@@ -56,45 +56,36 @@ export type Database = {
       }
       photos: {
         Row: {
-          carousel_data: string | null
+          carousel_data: string
           file_size: number | null
           filename: string
           id: string
           is_visible: boolean
-          medium_url: string | null
           mime_type: string | null
-          original_data: string | null
-          original_url: string
-          thumbnail_data: string | null
-          thumbnail_url: string | null
+          original_data: string
+          thumbnail_data: string
           uploaded_at: string
         }
         Insert: {
-          carousel_data?: string | null
+          carousel_data: string
           file_size?: number | null
           filename: string
           id?: string
           is_visible?: boolean
-          medium_url?: string | null
           mime_type?: string | null
-          original_data?: string | null
-          original_url: string
-          thumbnail_data?: string | null
-          thumbnail_url?: string | null
+          original_data: string
+          thumbnail_data: string
           uploaded_at?: string
         }
         Update: {
-          carousel_data?: string | null
+          carousel_data?: string
           file_size?: number | null
           filename?: string
           id?: string
           is_visible?: boolean
-          medium_url?: string | null
           mime_type?: string | null
-          original_data?: string | null
-          original_url?: string
-          thumbnail_data?: string | null
-          thumbnail_url?: string | null
+          original_data?: string
+          thumbnail_data?: string
           uploaded_at?: string
         }
         Relationships: []

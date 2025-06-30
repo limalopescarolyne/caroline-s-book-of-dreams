@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut } from 'lucide-react';
+import { LogOut, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import PhotoUpload from '@/components/admin/PhotoUpload';
@@ -143,10 +143,13 @@ const Admin = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-serif text-white mb-2">
-              Painel Administrativo
+              Painel de Administração
             </h1>
             <p className="text-pink-200">
               Bem-vindo, {user?.email}
+            </p>
+            <p className="text-sm text-gray-400">
+              Sistema completo de gerenciamento de conteúdo
             </p>
           </div>
           <div className="flex gap-4">
@@ -155,6 +158,7 @@ const Admin = () => {
               variant="outline"
               className="border-pink-300/30 text-pink-200 hover:bg-pink-500/10"
             >
+              <Home className="w-4 h-4 mr-2" />
               Ver Site
             </Button>
             <Button
@@ -168,15 +172,24 @@ const Admin = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="messages" className="space-y-6">
+        <Tabs defaultValue="photos" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 bg-gray-800/50">
-            <TabsTrigger value="messages" className="data-[state=active]:bg-pink-500/20">
-              Mensagens ({messages.length})
-            </TabsTrigger>
             <TabsTrigger value="photos" className="data-[state=active]:bg-pink-500/20">
-              Fotos ({photos.length})
+              📸 Fotos ({photos.length})
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="data-[state=active]:bg-pink-500/20">
+              💬 Mensagens ({messages.length})
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="photos" className="space-y-6">
+            <PhotoUpload onUploadComplete={loadPhotos} />
+            <PhotoGrid
+              photos={photos}
+              onToggleVisibility={handlePhotoToggleVisibility}
+              onDelete={handlePhotoDelete}
+            />
+          </TabsContent>
 
           <TabsContent value="messages" className="space-y-4">
             <MessageList
@@ -184,15 +197,6 @@ const Admin = () => {
               onApprove={handleMessageApprove}
               onToggleVisibility={handleMessageToggleVisibility}
               onDelete={handleMessageDelete}
-            />
-          </TabsContent>
-
-          <TabsContent value="photos" className="space-y-4">
-            <PhotoUpload onUploadComplete={loadPhotos} />
-            <PhotoGrid
-              photos={photos}
-              onToggleVisibility={handlePhotoToggleVisibility}
-              onDelete={handlePhotoDelete}
             />
           </TabsContent>
         </Tabs>

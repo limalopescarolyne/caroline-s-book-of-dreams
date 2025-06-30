@@ -43,7 +43,7 @@ export const resizeImage = (file: File, maxWidth: number, quality: number = 0.8)
 };
 
 export const createThumbnail = async (file: File): Promise<Blob> => {
-  return resizeImage(file, 400, 0.7);
+  return resizeImage(file, 300, 0.7);
 };
 
 export const optimizeForCarousel = async (file: File): Promise<Blob> => {
@@ -55,7 +55,7 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        resolve(reader.result.split(',')[1]); // Remove data:image/jpeg;base64, prefix
+        resolve(reader.result.split(',')[1]);
       } else {
         reject(new Error('Failed to convert blob to base64'));
       }

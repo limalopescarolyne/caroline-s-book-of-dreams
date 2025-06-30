@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -6,12 +7,9 @@ import { createThumbnail, optimizeForCarousel, blobToBase64 } from '@/utils/imag
 interface Photo {
   id: string;
   filename: string;
-  original_url?: string;
-  thumbnail_url?: string;
-  carousel_url?: string;
-  original_data?: string;
-  thumbnail_data?: string;
-  carousel_data?: string;
+  original_data: string;
+  thumbnail_data: string;
+  carousel_data: string;
   uploaded_at: string;
   is_visible: boolean;
   file_size?: number;
@@ -57,14 +55,14 @@ export const usePhotos = () => {
     try {
       console.log(`Processando ${file.name}...`);
       
-      // Processar imagens
+      // Processar múltiplas resoluções da imagem
       const [originalBlob, thumbnailBlob, carouselBlob] = await Promise.all([
         Promise.resolve(file),
         createThumbnail(file),
         optimizeForCarousel(file)
       ]);
 
-      // Converter para base64
+      // Converter todas para base64
       const [originalBase64, thumbnailBase64, carouselBase64] = await Promise.all([
         blobToBase64(originalBlob),
         blobToBase64(thumbnailBlob),
@@ -73,12 +71,11 @@ export const usePhotos = () => {
 
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
 
-      // Inserir no banco - incluindo original_url como campo obrigatório mesmo que vazio
+      // Inserir no banco
       const { error } = await supabase
         .from('photos')
         .insert({
           filename: fileName,
-          original_url: '', // Campo obrigatório, mas vazio já que usamos dados binários
           original_data: originalBase64,
           thumbnail_data: thumbnailBase64,
           carousel_data: carouselBase64,

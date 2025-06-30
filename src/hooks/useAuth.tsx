@@ -35,48 +35,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!error && data) {
         console.log('Usuário é admin:', userEmail);
         return true;
-      } else {
-        console.log('Usuário não é admin:', userEmail);
-        return false;
       }
+      
+      console.log('Usuário não é admin:', userEmail);
+      return false;
     } catch (error) {
       console.error('Erro ao verificar status admin:', error);
-      return false;
-    }
-  };
-
-  const createFirstAdmin = async (userEmail: string): Promise<boolean> => {
-    try {
-      console.log('Verificando se existe admin...');
-      
-      const { count, error: checkError } = await supabase
-        .from('admin_users')
-        .select('*', { count: 'exact', head: true });
-
-      if (checkError) {
-        console.error('Erro ao verificar admins existentes:', checkError);
-        return false;
-      }
-
-      if (count === 0) {
-        console.log('Nenhum admin encontrado, criando primeiro admin:', userEmail);
-        
-        const { error: insertError } = await supabase
-          .from('admin_users')
-          .insert({ email: userEmail });
-
-        if (insertError) {
-          console.error('Erro ao criar admin:', insertError);
-          return false;
-        } else {
-          console.log('Primeiro admin criado com sucesso:', userEmail);
-          return true;
-        }
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Erro ao criar primeiro admin:', error);
       return false;
     }
   };
@@ -88,19 +52,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(session?.user ?? null);
     
     if (session?.user?.email) {
-      try {
-        // Primeiro, tentar criar admin se for o primeiro usuário
-        const wasCreatedAsAdmin = await createFirstAdmin(session.user.email);
-        
-        // Depois verificar se é admin
-        const adminStatus = await checkAdminStatus(session.user.email);
-        
-        setIsAdmin(wasCreatedAsAdmin || adminStatus);
-        console.log('Status admin final:', wasCreatedAsAdmin || adminStatus);
-      } catch (error) {
-        console.error('Erro no processo de autenticação:', error);
-        setIsAdmin(false);
-      }
+      const adminStatus = await checkAdminStatus(session.user.email);
+      setIsAdmin(adminStatus);
+      console.log('Status admin final:', adminStatus);
     } else {
       setIsAdmin(false);
     }
@@ -111,10 +65,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
+      
+      // Limpar estado anterior
+      localStorage.clear();
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+      
+      if (!error) {
+        toast({
+          title: "Login realizado",
+          description: "Bem-vindo de volta!",
+        });
+      }
+      
       return { error };
     } catch (error) {
       return { error };
@@ -126,6 +92,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true);
+      
+      // Verificar se já existe um admin
+      const { data: adminUsers } = await supabase
+        .from('admin_users')
+        .select('id', { count: 'exact' });
+
+      if (adminUsers && adminUsers.length > 0) {
+        return { 
+          error: { 
+            message: 'Sistema já possui um administrador. Apenas um usuário pode se cadastrar.' 
+          } 
+        };
+      }
+
       const redirectUrl = `${window.location.origin}/`;
       
       const { error } = await supabase.auth.signUp({
@@ -135,6 +115,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           emailRedirectTo: redirectUrl
         }
       });
+      
       return { error };
     } catch (error) {
       return { error };
@@ -148,23 +129,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('Iniciando logout...');
       setLoading(true);
       
-      // Limpar storage local
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          localStorage.removeItem(key);
-        }
-      });
+      // Limpar localStorage
+      localStorage.clear();
       
       // Fazer logout no Supabase
       await supabase.auth.signOut({ scope: 'global' });
       
       console.log('Logout realizado, redirecionando...');
       
-      // Forçar reload da página para garantir limpeza completa
+      // Forçar reload da página
       window.location.href = '/auth';
     } catch (error) {
       console.error('Erro durante logout:', error);
-      // Mesmo com erro, tentar redirecionar
       window.location.href = '/auth';
     }
   };

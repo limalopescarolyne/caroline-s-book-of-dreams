@@ -41,7 +41,7 @@ const Auth = () => {
       if (error) {
         setError(error.message);
       } else if (isSignUp) {
-        setSuccessMessage('Conta criada! Verifique seu email para confirmar.');
+        setSuccessMessage('Conta criada! Verifique seu email para confirmar. Você será o administrador do sistema.');
       }
     } catch (err) {
       setError('Erro inesperado. Tente novamente.');
@@ -55,12 +55,12 @@ const Auth = () => {
       <Card className="w-full max-w-md glass-effect elegant-shadow border border-pink-200/30">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-serif text-white">
-            {isSignUp ? 'Criar Conta' : 'Entrar'}
+            {isSignUp ? 'Criar Conta de Administrador' : 'Entrar no Sistema'}
           </CardTitle>
           <CardDescription className="text-pink-200">
             {isSignUp 
-              ? 'Crie sua conta para acessar o sistema. O primeiro usuário será automaticamente administrador.'
-              : 'Entre com suas credenciais'
+              ? 'Crie a única conta de administrador do sistema. Somente uma conta pode ser criada.'
+              : 'Entre com suas credenciais de administrador'
             }
           </CardDescription>
         </CardHeader>
@@ -77,7 +77,7 @@ const Auth = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="bg-white/10 border-pink-300/30 text-white placeholder-gray-300"
-                placeholder="seu@email.com"
+                placeholder="admin@exemplo.com"
               />
             </div>
             
@@ -92,7 +92,7 @@ const Auth = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="bg-white/10 border-pink-300/30 text-white placeholder-gray-300"
-                placeholder="Sua senha"
+                placeholder="Sua senha segura"
               />
             </div>
 
@@ -113,7 +113,7 @@ const Auth = () => {
               disabled={loading}
               className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
             >
-              {loading ? 'Processando...' : (isSignUp ? 'Criar Conta' : 'Entrar')}
+              {loading ? 'Processando...' : (isSignUp ? 'Criar Conta de Admin' : 'Entrar')}
             </Button>
 
             <div className="text-center">
@@ -123,8 +123,8 @@ const Auth = () => {
                 className="text-pink-300 hover:text-pink-200 text-sm"
               >
                 {isSignUp 
-                  ? 'Já tem conta? Faça login'
-                  : 'Não tem conta? Cadastre-se'
+                  ? 'Já possui conta de admin? Faça login'
+                  : 'Não possui conta? Cadastre-se como admin'
                 }
               </button>
             </div>
@@ -132,7 +132,7 @@ const Auth = () => {
             {isSignUp && (
               <div className="text-center border-t border-pink-200/30 pt-4">
                 <p className="text-xs text-yellow-400">
-                  ℹ️ O primeiro usuário a se cadastrar será automaticamente administrador
+                  ⚠️ Apenas UMA conta de administrador pode ser criada no sistema
                 </p>
               </div>
             )}
