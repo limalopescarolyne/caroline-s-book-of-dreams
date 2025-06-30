@@ -33,24 +33,39 @@ const PhotoCarousel = () => {
   };
 
   const loadPhotos = useCallback(async () => {
-    setIsLoading(true);
-    console.log('🔄 Buscando fotos visíveis...');
-  
-    const { data, error } = await supabase
+  setIsLoading(true);
+  console.log('🔄 Iniciando carregamento de fotos...');
+
+  try {
+    const { data, error, status } = await supabase
       .from('photos')
       .select('*')
       .eq('is_visible', true)
       .order('uploaded_at', { ascending: true });
-  
+
+    console.log('📦 Resposta Supabase:', { data, error, status });
+
     if (error) {
-      console.error('❌ Erro Supabase:', error);
-    } else if (data) {
-      console.log('✅ Fotos recebidas:', data);
+      console.error('❌ Erro na consulta Supabase:', error);
+      setPhotos([]);
+    } else if (data && Array.isArray(data)) {
+      if (data.length === 0) {
+        console.warn('⚠️ Nenhuma foto visível encontrada');
+      } else {
+        console.log(`✅ ${data.length} fotos carregadas`);
+      }
       setPhotos(data);
+    } else {
+      console.error('❌ Dados inválidos recebidos:', data);
+      setPhotos([]);
     }
-  
+  } catch (err) {
+    console.error('🔥 Erro inesperado no try/catch:', err);
+    setPhotos([]);
+  } finally {
     setIsLoading(false);
-  }, []);
+  }
+}, []);
 
 
   const handleIndexChange = useCallback((newIndex: number) => {
