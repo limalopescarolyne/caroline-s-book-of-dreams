@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -74,11 +73,12 @@ export const usePhotos = () => {
 
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
 
-      // Inserir no banco
+      // Inserir no banco - incluindo original_url como campo obrigatório mesmo que vazio
       const { error } = await supabase
         .from('photos')
         .insert({
           filename: fileName,
+          original_url: '', // Campo obrigatório, mas vazio já que usamos dados binários
           original_data: originalBase64,
           thumbnail_data: thumbnailBase64,
           carousel_data: carouselBase64,
