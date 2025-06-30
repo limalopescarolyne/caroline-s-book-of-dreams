@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import PhotoUpload from '@/components/admin/PhotoUpload';
 import PhotoGrid from '@/components/admin/PhotoGrid';
 import MessageList from '@/components/admin/MessageList';
+import SystemSettings from '@/components/admin/SystemSettings';
 import { usePhotos } from '@/hooks/usePhotos';
 import { useMessages } from '@/hooks/useMessages';
 
@@ -173,12 +174,15 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="photos" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800/50">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800/50">
             <TabsTrigger value="photos" className="data-[state=active]:bg-pink-500/20">
               📸 Fotos ({photos.length})
             </TabsTrigger>
             <TabsTrigger value="messages" className="data-[state=active]:bg-pink-500/20">
               💬 Mensagens ({messages.length})
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-pink-500/20">
+              ⚙️ Configurações
             </TabsTrigger>
           </TabsList>
 
@@ -198,6 +202,10 @@ const Admin = () => {
               onToggleVisibility={handleMessageToggleVisibility}
               onDelete={handleMessageDelete}
             />
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-4">
+            <SystemSettings />
           </TabsContent>
         </Tabs>
       </div>

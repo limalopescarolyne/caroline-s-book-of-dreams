@@ -1,5 +1,5 @@
 
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const checkAdminStatus = async (userEmail: string): Promise<boolean> => {
+  const checkAdminStatus = useCallback(async (userEmail: string): Promise<boolean> => {
     try {
       console.log('Verificando status admin para:', userEmail);
       const { data, error } = await supabase
@@ -43,9 +43,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Erro ao verificar status admin:', error);
       return false;
     }
-  };
+  }, []);
 
-  const handleAuthChange = async (session: Session | null) => {
+  const handleAuthChange = useCallback(async (session: Session | null) => {
     console.log('Auth state changed:', session?.user?.email);
     
     setSession(session);
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     setLoading(false);
-  };
+  }, [checkAdminStatus]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       console.log('Iniciando logout...');
       setLoading(true);
@@ -135,15 +135,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Fazer logout no Supabase
       await supabase.auth.signOut({ scope: 'global' });
       
-      console.log('Logout realizado, redirecionando...');
+      // Limpar estado local
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
       
-      // Forçar reload da página
-      window.location.href = '/auth';
+      console.log('Logout realizado com sucesso');
+      
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso",
+      });
+      
+      // Pequeno delay antes do redirecionamento
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+      
     } catch (error) {
       console.error('Erro durante logout:', error);
-      window.location.href = '/auth';
+      // Mesmo com erro, limpar estado e redirecionar
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
+      localStorage.clear();
+      window.location.href = '/';
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     console.log('Inicializando auth state...');
@@ -179,7 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [handleAuthChange]);
 
   return (
     <AuthContext.Provider value={{

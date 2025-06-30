@@ -17,6 +17,10 @@ export const resizeImage = (file: File, maxWidth: number, quality: number = 0.8)
           canvas.width = img.width * ratio;
           canvas.height = img.height * ratio;
 
+          // Usar configurações de alta qualidade
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           
           canvas.toBlob((blob) => {
@@ -47,7 +51,7 @@ export const createThumbnail = async (file: File): Promise<Blob> => {
 };
 
 export const optimizeForCarousel = async (file: File): Promise<Blob> => {
-  return resizeImage(file, 800, 0.8);
+  return resizeImage(file, 800, 0.85);
 };
 
 export const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -66,18 +70,37 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
 };
 
 export const base64ToBlob = (base64: string, mimeType: string = 'image/jpeg'): Blob => {
-  const byteCharacters = atob(base64);
-  const byteNumbers = new Array(byteCharacters.length);
-  
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  try {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+  } catch (error) {
+    console.error('Erro ao converter base64 para blob:', error);
+    // Retornar blob vazio em caso de erro
+    return new Blob([], { type: mimeType });
   }
-  
-  const byteArray = new Uint8Array(byteNumbers);
-  return new Blob([byteArray], { type: mimeType });
 };
 
 export const createImageUrl = (base64Data: string, mimeType: string = 'image/jpeg'): string => {
-  const blob = base64ToBlob(base64Data, mimeType);
-  return URL.createObjectURL(blob);
+  try {
+    if (!base64Data) {
+      return '/placeholder.svg?height=600&width=400&text=Imagem+Não+Disponível';
+    }
+    
+    const blob = base64ToBlob(base64Data, mimeType);
+    if (blob.size === 0) {
+      return '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';
+    }
+    
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('Erro ao criar URL da imagem:', error);
+    return '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';
+  }
 };

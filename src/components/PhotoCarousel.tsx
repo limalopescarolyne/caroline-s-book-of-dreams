@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { supabase } from '@/integrations/supabase/client';
 import { createImageUrl } from '@/utils/imageProcessing';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 
 interface Photo {
   id: string;
@@ -19,21 +20,30 @@ const PhotoCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const { settings } = useSystemSettings();
+
+  const maxPhotos = settings.carouselPhotosCount;
 
   const getImageSrc = useCallback((photo: Photo): string => {
     const existingUrl = imageUrls.get(photo.id);
     if (existingUrl) return existingUrl;
 
-    const newUrl = createImageUrl(photo.carousel_data, photo.mime_type);
-    
-    if (newUrl.startsWith('blob:')) {
-      setImageUrls(prev => new Map(prev.set(photo.id, newUrl)));
-    }
+    try {
+      const newUrl = createImageUrl(photo.carousel_data, photo.mime_type);
+      
+      if (newUrl.startsWith('blob:')) {
+        setImageUrls(prev => new Map(prev.set(photo.id, newUrl)));
+      }
 
-    return newUrl;
+      return newUrl;
+    } catch (error) {
+      console.error('Erro ao criar URL da imagem:', error);
+      return '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';
+    }
   }, [imageUrls]);
 
-  const loadPhotos = async () => {
+  const loadPhotos = useCallback(async () => {
     try {
       setIsLoading(true);
       console.log('Carregando fotos para carousel...');
@@ -44,7 +54,7 @@ const PhotoCarousel = () => {
         .eq('is_visible', true)
         .order('uploaded_at', { ascending: true });
       
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         console.log(`${data.length} fotos carregadas para carousel`);
         setPhotos(data);
         
@@ -55,8 +65,9 @@ const PhotoCarousel = () => {
           }
         });
         setImageUrls(new Map());
+        setLoadedImages(new Set());
       } else {
-        console.error('Erro ao carregar fotos:', error);
+        console.log('Nenhuma foto encontrada ou erro:', error);
         setPhotos([]);
       }
       
@@ -66,13 +77,26 @@ const PhotoCarousel = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [imageUrls]);
 
   const handleIndexChange = useCallback((newIndex: number) => {
     if (newIndex >= 0 && newIndex < photos.length) {
       setCurrentIndex(newIndex);
     }
   }, [photos.length]);
+
+  const preloadImage = useCallback((photo: Photo) => {
+    if (loadedImages.has(photo.id)) return;
+
+    const img = new Image();
+    img.onload = () => {
+      setLoadedImages(prev => new Set(prev.add(photo.id)));
+    };
+    img.onerror = () => {
+      console.error('Erro ao pré-carregar imagem:', photo.filename);
+    };
+    img.src = getImageSrc(photo);
+  }, [getImageSrc, loadedImages]);
 
   useEffect(() => {
     loadPhotos();
@@ -84,8 +108,19 @@ const PhotoCarousel = () => {
         }
       });
     };
-  }, []);
+  }, [loadPhotos]);
 
+  // Pré-carregar imagens visíveis
+  useEffect(() => {
+    if (photos.length === 0) return;
+
+    const visiblePhotos = getVisiblePhotos();
+    visiblePhotos.forEach(({ photo }) => {
+      preloadImage(photo);
+    });
+  }, [photos, currentIndex, maxPhotos, preloadImage]);
+
+  // Auto-rotation
   useEffect(() => {
     if (photos.length === 0) return;
     
@@ -97,8 +132,7 @@ const PhotoCarousel = () => {
   }, [photos.length, currentIndex, handleIndexChange]);
 
   const getPhotoStyle = (index: number) => {
-    const totalPhotos = Math.min(photos.length, 5);
-    const center = Math.floor(totalPhotos / 2);
+    const center = Math.floor(maxPhotos / 2);
     const distance = Math.abs(index - center);
 
     let transform = '';
@@ -125,7 +159,7 @@ const PhotoCarousel = () => {
   };
 
   const getVisiblePhotos = () => {
-    const visibleCount = Math.min(5, photos.length);
+    const visibleCount = Math.min(maxPhotos, photos.length);
     const visiblePhotos = [];
 
     for (let i = 0; i < visibleCount; i++) {
@@ -171,6 +205,7 @@ const PhotoCarousel = () => {
       <div className="relative w-full max-w-5xl mx-auto flex justify-center items-center">
         {getVisiblePhotos().map(({ photo, index }) => {
           const imageSrc = getImageSrc(photo);
+          const isLoaded = loadedImages.has(photo.id);
           
           return (
             <div
@@ -183,16 +218,24 @@ const PhotoCarousel = () => {
                 <img
                   src={imageSrc}
                   alt={`Foto ${index + 1}`}
-                  className="w-full h-full object-cover rounded-lg transition-opacity duration-300"
+                  className={`w-full h-full object-cover rounded-lg transition-opacity duration-300 ${
+                    isLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
                   loading="lazy"
+                  onLoad={() => setLoadedImages(prev => new Set(prev.add(photo.id)))}
                   onError={(e) => {
                     console.error('Erro ao carregar imagem no carousel:', photo.filename);
                     const target = e.target as HTMLImageElement;
                     target.src = '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';
                   }}
                 />
+                {!isLoaded && (
+                  <div className="absolute inset-0 bg-gray-800 animate-pulse rounded-lg flex items-center justify-center">
+                    <div className="text-gray-400 text-sm">Carregando...</div>
+                  </div>
+                )}
               </AspectRatio>
-              {index === Math.floor(5 / 2) && (
+              {index === Math.floor(maxPhotos / 2) && (
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg"></div>
               )}
             </div>
