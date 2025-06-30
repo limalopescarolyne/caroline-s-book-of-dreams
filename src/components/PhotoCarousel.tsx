@@ -32,40 +32,51 @@ const PhotoCarousel = () => {
     return data?.publicUrl || '/placeholder.svg';
   };
 
-  const loadPhotos = useCallback(async () => {
-  setIsLoading(true);
-  console.log('🔄 Iniciando carregamento de fotos...');
-
-  try {
-    const { data, error, status } = await supabase
-      .from('photos')
-      .select('*')
-      .eq('is_visible', true)
-      .order('uploaded_at', { ascending: true });
-
-    console.log('📦 Resposta Supabase:', { data, error, status });
-
-    if (error) {
-      console.error('❌ Erro na consulta Supabase:', error);
-      setPhotos([]);
-    } else if (data && Array.isArray(data)) {
-      if (data.length === 0) {
-        console.warn('⚠️ Nenhuma foto visível encontrada');
+    const loadPhotos = useCallback(async () => {
+    setIsLoading(true);
+    console.log('🔄 Iniciando carregamento de fotos visíveis...');
+  
+    try {
+      // Aguarda autenticação (caso necessário)
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  
+      if (sessionError) {
+        console.error('❌ Erro ao obter sessão:', sessionError);
       } else {
-        console.log(`✅ ${data.length} fotos carregadas`);
+        console.log('👤 Sessão atual:', sessionData?.session?.user?.email || 'Usuário não logado');
       }
-      setPhotos(data);
-    } else {
-      console.error('❌ Dados inválidos recebidos:', data);
+  
+      // Consulta as fotos visíveis
+      const { data, error, status } = await supabase
+        .from('photos')
+        .select('*')
+        .eq('is_visible', true)
+        .order('uploaded_at', { ascending: true });
+  
+      console.log('📦 Resposta Supabase:', { status, error, data });
+  
+      if (error) {
+        console.error('❌ Erro ao carregar fotos:', error);
+        setPhotos([]);
+      } else if (data && Array.isArray(data)) {
+        if (data.length === 0) {
+          console.warn('⚠️ Nenhuma foto visível encontrada na tabela');
+        } else {
+          console.log(`✅ ${data.length} fotos carregadas`);
+        }
+        setPhotos(data);
+      } else {
+        console.error('❌ Resposta inesperada:', data);
+        setPhotos([]);
+      }
+    } catch (err) {
+      console.error('🔥 Erro inesperado no try/catch:', err);
       setPhotos([]);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.error('🔥 Erro inesperado no try/catch:', err);
-    setPhotos([]);
-  } finally {
-    setIsLoading(false);
-  }
-}, []);
+  }, []);
+
 
 
   const handleIndexChange = useCallback((newIndex: number) => {
