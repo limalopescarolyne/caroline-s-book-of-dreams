@@ -84,15 +84,9 @@ const Auth = () => {
       if (result.success) {
         setError('');
         setHasAdminUser(true);
-        console.log('Conta admin criada/configurada com sucesso');
-        
-        if (result.needsManualConfirmation) {
-          setError('Conta admin criada! Aguarde alguns segundos e tente fazer login com: admin@admin.com / linda2010');
-        } else {
-          // Se criou com sucesso e fez login, a navegação será feita automaticamente pelo useEffect
-        }
+        console.log('Conta admin criada com sucesso');
       } else {
-        setError(result.error?.message || 'Erro ao criar/configurar conta admin');
+        setError(result.error?.message || 'Erro ao criar conta admin');
       }
     } catch (err) {
       console.error('Erro inesperado:', err);
