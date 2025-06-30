@@ -15,6 +15,7 @@ const Auth = () => {
   const [error, setError] = useState('');
   const [hasAdminUser, setHasAdminUser] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const { signIn, signUp, user, isAdmin, createAdminAccount } = useAuth();
   const navigate = useNavigate();
@@ -57,6 +58,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       const { error } = isSignUp 
@@ -65,6 +67,8 @@ const Auth = () => {
 
       if (error) {
         setError(error.message);
+      } else if (isSignUp) {
+        setSuccessMessage('Conta criada! Verifique seu email para confirmar.');
       }
     } catch (err) {
       setError('Erro inesperado. Tente novamente.');
@@ -76,15 +80,21 @@ const Auth = () => {
   const handleCreateAdminAccount = async () => {
     setLoading(true);
     setError('');
+    setSuccessMessage('');
     
     try {
       console.log('Iniciando criação da conta admin...');
       const result = await createAdminAccount();
       
       if (result.success) {
-        setError('');
+        setSuccessMessage('Conta admin criada com sucesso! Use: admin@admin.com / linda2010');
         setHasAdminUser(true);
         console.log('Conta admin criada com sucesso');
+        
+        // Se houver mensagem de erro (como confirmação de email), mostrar como aviso
+        if (result.error?.message) {
+          setSuccessMessage(result.error.message);
+        }
       } else {
         setError(result.error?.message || 'Erro ao criar conta admin');
       }
@@ -155,6 +165,12 @@ const Auth = () => {
             {error && (
               <div className="text-red-400 text-sm bg-red-900/20 p-2 rounded">
                 {error}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="text-green-400 text-sm bg-green-900/20 p-2 rounded">
+                {successMessage}
               </div>
             )}
 

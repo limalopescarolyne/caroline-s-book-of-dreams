@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,7 +59,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { success: false, error: { message: 'Já existe um administrador cadastrado no sistema' } };
       }
 
-      // Primeiro, adicionar o email à tabela admin_users
+      // Criar usuário usando signUp normal primeiro
+      console.log('Criando usuário admin...');
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: adminEmail,
+        password: adminPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (signUpError && !signUpError.message.includes('User already registered')) {
+        console.log('Erro ao criar usuário:', signUpError);
+        return { success: false, error: signUpError };
+      }
+
+      // Adicionar à tabela admin_users (agora permitido pela nova política RLS)
       console.log('Adicionando admin à tabela admin_users...');
       const { error: insertError } = await supabase
         .from('admin_users')
@@ -71,30 +87,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { success: false, error: insertError };
       }
 
-      // Criar o usuário no Supabase Auth
-      console.log('Criando usuário admin...');
-      const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
-        email: adminEmail,
-        password: adminPassword,
-        email_confirm: true
-      });
+      console.log('Admin criado com sucesso');
 
-      if (signUpError) {
-        console.log('Erro ao criar usuário admin:', signUpError);
-        return { success: false, error: signUpError };
-      }
-
-      console.log('Usuário admin criado com sucesso:', signUpData.user?.email);
-
-      // Fazer login automaticamente
-      console.log('Fazendo login automático...');
+      // Tentar fazer login imediatamente
+      console.log('Tentando fazer login automático...');
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: adminEmail,
         password: adminPassword
       });
 
       if (signInError) {
-        console.log('Erro no login automático:', signInError);
+        console.log('Login automático falhou:', signInError);
+        // Se falhar por email não confirmado, isso é esperado
+        if (signInError.message.includes('Email not confirmed')) {
+          return { success: true, error: { message: 'Conta admin criada! Use: admin@admin.com / linda2010 para fazer login (pode ser necessário confirmar email)' } };
+        }
         return { success: false, error: signInError };
       }
 
