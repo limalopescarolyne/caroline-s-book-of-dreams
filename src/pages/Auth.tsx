@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -13,11 +12,9 @@ const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [hasAdminUser, setHasAdminUser] = useState(false);
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const { signIn, signUp, user, isAdmin, createAdminAccount } = useAuth();
+  const { signIn, signUp, user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,30 +26,6 @@ const Auth = () => {
       }
     }
   }, [user, isAdmin, navigate]);
-
-  // Verificar se já existe um administrador
-  useEffect(() => {
-    const checkExistingAdmin = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('admin_users')
-          .select('email');
-        
-        if (!error && data && data.length > 0) {
-          setHasAdminUser(true);
-        } else {
-          setHasAdminUser(false);
-        }
-      } catch (err) {
-        console.error('Erro ao verificar admin existente:', err);
-        setHasAdminUser(false);
-      } finally {
-        setCheckingAdmin(false);
-      }
-    };
-
-    checkExistingAdmin();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,45 +50,6 @@ const Auth = () => {
     setLoading(false);
   };
 
-  const handleCreateAdminAccount = async () => {
-    setLoading(true);
-    setError('');
-    setSuccessMessage('');
-    
-    try {
-      console.log('Iniciando criação da conta admin...');
-      const result = await createAdminAccount();
-      
-      if (result.success) {
-        setSuccessMessage('Conta admin criada com sucesso! Use: admin@admin.com / linda2010');
-        setHasAdminUser(true);
-        console.log('Conta admin criada com sucesso');
-        
-        // Se houver mensagem de erro (como confirmação de email), mostrar como aviso
-        if (result.error?.message) {
-          setSuccessMessage(result.error.message);
-        }
-      } else {
-        setError(result.error?.message || 'Erro ao criar conta admin');
-      }
-    } catch (err) {
-      console.error('Erro inesperado:', err);
-      setError('Erro inesperado ao criar conta admin');
-    }
-    
-    setLoading(false);
-  };
-
-  if (checkingAdmin) {
-    return (
-      <div className="min-h-screen professional-dark flex items-center justify-center p-4">
-        <div className="text-pink-300 text-lg animate-pulse">
-          Verificando sistema...
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen professional-dark flex items-center justify-center p-4">
       <Card className="w-full max-w-md glass-effect elegant-shadow border border-pink-200/30">
@@ -125,7 +59,7 @@ const Auth = () => {
           </CardTitle>
           <CardDescription className="text-pink-200">
             {isSignUp 
-              ? 'Crie sua conta para acessar o sistema'
+              ? 'Crie sua conta para acessar o sistema. O primeiro usuário será automaticamente administrador.'
               : 'Entre com suas credenciais'
             }
           </CardDescription>
@@ -182,49 +116,26 @@ const Auth = () => {
               {loading ? 'Processando...' : (isSignUp ? 'Criar Conta' : 'Entrar')}
             </Button>
 
-            <div className="text-center space-y-2">
+            <div className="text-center">
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-pink-300 hover:text-pink-200 text-sm block w-full"
+                className="text-pink-300 hover:text-pink-200 text-sm"
               >
                 {isSignUp 
                   ? 'Já tem conta? Faça login'
                   : 'Não tem conta? Cadastre-se'
                 }
               </button>
-              
-              {!hasAdminUser && (
-                <div className="border-t border-pink-200/30 pt-4">
-                  <Button
-                    type="button"
-                    onClick={handleCreateAdminAccount}
-                    disabled={loading}
-                    variant="outline"
-                    className="w-full border-green-300/30 text-green-200 hover:bg-green-500/10"
-                  >
-                    {loading ? 'Criando...' : 'Criar Conta Admin'}
-                  </Button>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Email: admin@admin.com | Senha: linda2010
-                  </p>
-                  <p className="text-xs text-yellow-400 mt-1">
-                    ⚠️ Este botão aparece apenas uma vez
-                  </p>
-                </div>
-              )}
-              
-              {hasAdminUser && (
-                <div className="border-t border-pink-200/30 pt-4">
-                  <p className="text-xs text-green-400">
-                    ✓ Conta de administrador já configurada
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Use: admin@admin.com | linda2010 para acessar o painel
-                  </p>
-                </div>
-              )}
             </div>
+
+            {isSignUp && (
+              <div className="text-center border-t border-pink-200/30 pt-4">
+                <p className="text-xs text-yellow-400">
+                  ℹ️ O primeiro usuário a se cadastrar será automaticamente administrador
+                </p>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>

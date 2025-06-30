@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +11,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   createAdminAccount: () => Promise<{ success: boolean; error?: any }>;
+  checkAndCreateFirstAdmin: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkAdminStatus = async (userEmail: string) => {
     try {
+      console.log('Verificando status admin para:', userEmail);
       const { data, error } = await supabase
         .from('admin_users')
         .select('email')
@@ -34,12 +35,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('Usuário é admin:', userEmail);
         setIsAdmin(true);
       } else {
-        console.log('Usuário não é admin:', userEmail);
+        console.log('Usuário não é admin:', userEmail, error);
         setIsAdmin(false);
       }
     } catch (error) {
       console.log('Erro ao verificar status admin:', error);
       setIsAdmin(false);
+    }
+  };
+
+  const checkAndCreateFirstAdmin = async () => {
+    if (!user?.email) return;
+
+    try {
+      console.log('Verificando se existe admin...');
+      
+      // Verificar se já existe algum admin
+      const { data: existingAdmins, error: checkError } = await supabase
+        .from('admin_users')
+        .select('email');
+
+      if (checkError) {
+        console.error('Erro ao verificar admins existentes:', checkError);
+        return;
+      }
+
+      // Se não existe nenhum admin, tornar o usuário atual admin
+      if (!existingAdmins || existingAdmins.length === 0) {
+        console.log('Nenhum admin encontrado, tornando usuário atual admin:', user.email);
+        
+        const { error: insertError } = await supabase
+          .from('admin_users')
+          .insert({ email: user.email });
+
+        if (insertError) {
+          console.error('Erro ao criar admin:', insertError);
+        } else {
+          console.log('Admin criado com sucesso:', user.email);
+          setIsAdmin(true);
+        }
+      } else {
+        console.log('Já existem admins cadastrados:', existingAdmins.length);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar/criar primeiro admin:', error);
     }
   };
 
@@ -127,7 +166,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user?.email) {
+          // Primeiro verificar se já é admin
           await checkAdminStatus(session.user.email);
+          
+          // Se não for admin, verificar se deve ser o primeiro admin
+          setTimeout(async () => {
+            if (mounted) {
+              await checkAndCreateFirstAdmin();
+            }
+          }, 1000);
         } else {
           setIsAdmin(false);
         }
@@ -147,6 +194,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (session?.user?.email) {
           await checkAdminStatus(session.user.email);
+          // Verificar se deve ser o primeiro admin
+          setTimeout(async () => {
+            if (mounted) {
+              await checkAndCreateFirstAdmin();
+            }
+          }, 1000);
         }
         
         setLoading(false);
@@ -206,6 +259,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       signUp,
       signOut,
       createAdminAccount,
+      checkAndCreateFirstAdmin,
     }}>
       {children}
     </AuthContext.Provider>
