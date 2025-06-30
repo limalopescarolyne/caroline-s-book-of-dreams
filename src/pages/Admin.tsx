@@ -1,14 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Trash2, Eye, EyeOff, Check, X, Upload, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import PhotoUpload from '@/components/admin/PhotoUpload';
+import PhotoGrid from '@/components/admin/PhotoGrid';
+import MessageList from '@/components/admin/MessageList';
 
 interface Message {
   id: string;
@@ -24,6 +24,7 @@ interface Photo {
   filename: string;
   original_url: string;
   thumbnail_url?: string;
+  carousel_url?: string;
   uploaded_at: string;
   is_visible: boolean;
   file_size?: number;
@@ -36,7 +37,6 @@ const Admin = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
 
   const loadMessages = async () => {
     try {
@@ -178,78 +178,6 @@ const Admin = () => {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploading(true);
-
-    try {
-      for (const file of Array.from(files)) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        
-        // Upload do arquivo
-        const { error: uploadError } = await supabase.storage
-          .from('photos')
-          .upload(fileName, file);
-
-        if (uploadError) {
-          console.error('Erro no upload:', uploadError);
-          toast({
-            title: "Erro no upload",
-            description: `Erro ao fazer upload de ${file.name}`,
-            variant: "destructive",
-          });
-          continue;
-        }
-
-        // Obter URL pública
-        const { data: { publicUrl } } = supabase.storage
-          .from('photos')
-          .getPublicUrl(fileName);
-
-        // Inserir registro na tabela
-        const { error: insertError } = await supabase
-          .from('photos')
-          .insert({
-            filename: fileName,
-            original_url: publicUrl,
-            file_size: file.size,
-            mime_type: file.type
-          });
-
-        if (insertError) {
-          console.error('Erro ao inserir registro:', insertError);
-          toast({
-            title: "Erro",
-            description: `Erro ao registrar ${file.name} no banco`,
-            variant: "destructive",
-          });
-        }
-      }
-
-      toast({
-        title: "Sucesso",
-        description: "Upload concluído com sucesso",
-      });
-      
-      // Recarregar fotos
-      await loadPhotos();
-    } catch (error) {
-      console.error('Erro geral no upload:', error);
-      toast({
-        title: "Erro",
-        description: "Erro geral durante o upload",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-      // Limpar o input
-      e.target.value = '';
-    }
-  };
-
   const togglePhotoVisibility = async (id: string, visible: boolean) => {
     try {
       const { error } = await supabase
@@ -284,13 +212,21 @@ const Admin = () => {
     }
 
     try {
-      // Remover do storage
-      const { error: storageError } = await supabase.storage
-        .from('photos')
-        .remove([filename]);
+      // Remover todas as versões do storage
+      const filesToRemove = [
+        `originals/${filename}`,
+        `thumbnails/thumb_${filename}`,
+        `carousel/carousel_${filename}`
+      ];
 
-      if (storageError) {
-        console.error('Erro ao remover do storage:', storageError);
+      for (const file of filesToRemove) {
+        const { error: storageError } = await supabase.storage
+          .from('photos')
+          .remove([file]);
+
+        if (storageError) {
+          console.error('Erro ao remover do storage:', storageError);
+        }
       }
 
       // Remover do banco
@@ -321,7 +257,6 @@ const Admin = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/auth');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     }
@@ -379,152 +314,21 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="messages" className="space-y-4">
-            {messages.length === 0 ? (
-              <Card className="glass-effect border border-pink-200/30">
-                <CardContent className="text-center py-8">
-                  <p className="text-gray-400">Nenhuma mensagem encontrada</p>
-                </CardContent>
-              </Card>
-            ) : (
-              messages.map((message) => (
-                <Card key={message.id} className="glass-effect border border-pink-200/30">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg text-white">{message.name}</CardTitle>
-                        <CardDescription className="text-pink-200">
-                          {new Date(message.created_at).toLocaleString('pt-BR')}
-                        </CardDescription>
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge variant={message.is_approved ? "default" : "secondary"}>
-                          {message.is_approved ? "Aprovada" : "Pendente"}
-                        </Badge>
-                        <Badge variant={message.is_visible ? "default" : "secondary"}>
-                          {message.is_visible ? "Visível" : "Oculta"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-200 mb-4">{message.message}</p>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => approveMessage(message.id, !message.is_approved)}
-                        className={message.is_approved 
-                          ? "bg-orange-500 hover:bg-orange-600" 
-                          : "bg-green-500 hover:bg-green-600"
-                        }
-                      >
-                        {message.is_approved ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                        {message.is_approved ? "Reprovar" : "Aprovar"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleMessageVisibility(message.id, !message.is_visible)}
-                        className="border-blue-300/30 text-blue-200 hover:bg-blue-500/10"
-                      >
-                        {message.is_visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        {message.is_visible ? "Ocultar" : "Mostrar"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => deleteMessage(message.id)}
-                        className="border-red-300/30 text-red-200 hover:bg-red-500/10"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Excluir
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+            <MessageList
+              messages={messages}
+              onApprove={approveMessage}
+              onToggleVisibility={toggleMessageVisibility}
+              onDelete={deleteMessage}
+            />
           </TabsContent>
 
           <TabsContent value="photos" className="space-y-4">
-            <Card className="glass-effect border border-pink-200/30">
-              <CardHeader>
-                <CardTitle className="text-white">Upload de Fotos</CardTitle>
-                <CardDescription className="text-pink-200">
-                  Selecione múltiplas fotos para fazer upload
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="text-white"
-                    disabled={uploading}
-                  />
-                  {uploading && (
-                    <div className="text-pink-300 animate-pulse">
-                      Fazendo upload...
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {photos.length === 0 ? (
-              <Card className="glass-effect border border-pink-200/30">
-                <CardContent className="text-center py-8">
-                  <p className="text-gray-400">Nenhuma foto encontrada</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {photos.map((photo) => (
-                  <Card key={photo.id} className="glass-effect border border-pink-200/30">
-                    <CardContent className="p-4">
-                      <img
-                        src={photo.original_url}
-                        alt={photo.filename}
-                        className="w-full h-48 object-cover rounded mb-3"
-                        onError={(e) => {
-                          console.error('Erro ao carregar imagem:', photo.original_url);
-                          e.currentTarget.src = '/placeholder.svg';
-                        }}
-                      />
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Badge variant={photo.is_visible ? "default" : "secondary"}>
-                            {photo.is_visible ? "Visível" : "Oculta"}
-                          </Badge>
-                          <span className="text-xs text-gray-300">
-                            {photo.file_size ? `${(photo.file_size / 1024).toFixed(1)}KB` : ''}
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => togglePhotoVisibility(photo.id, !photo.is_visible)}
-                            className="border-blue-300/30 text-blue-200 hover:bg-blue-500/10"
-                          >
-                            {photo.is_visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => deletePhoto(photo.id, photo.filename)}
-                            className="border-red-300/30 text-red-200 hover:bg-red-500/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <PhotoUpload onUploadComplete={loadPhotos} />
+            <PhotoGrid
+              photos={photos}
+              onToggleVisibility={togglePhotoVisibility}
+              onDelete={deletePhoto}
+            />
           </TabsContent>
         </Tabs>
       </div>

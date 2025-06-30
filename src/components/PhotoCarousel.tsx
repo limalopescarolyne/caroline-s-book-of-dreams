@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +7,7 @@ interface Photo {
   filename: string;
   original_url: string;
   thumbnail_url?: string;
+  carousel_url?: string;
   is_visible: boolean;
 }
 
@@ -143,13 +143,18 @@ const PhotoCarousel = () => {
           >
             <AspectRatio ratio={3 / 4} className="overflow-hidden rounded-lg">
               <img
-                src={photo.original_url}
+                src={photo.carousel_url || photo.original_url}
                 alt={`Foto ${index + 1}`}
                 className="w-full h-full object-cover rounded-lg transition-opacity duration-300"
                 loading="lazy"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';
+                  // Tentar fallback para original se carousel falhar
+                  if (target.src !== photo.original_url) {
+                    target.src = photo.original_url;
+                  } else {
+                    target.src = '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';
+                  }
                 }}
               />
             </AspectRatio>
