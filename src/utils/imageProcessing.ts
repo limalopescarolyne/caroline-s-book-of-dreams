@@ -59,7 +59,7 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        resolve(reader.result.split(',')[1]);
+        resolve(reader.result);
       } else {
         reject(new Error('Failed to convert blob to base64'));
       }
@@ -71,7 +71,9 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
 
 export const base64ToBlob = (base64: string, mimeType: string = 'image/jpeg'): Blob => {
   try {
-    const byteCharacters = atob(base64);
+    // Remover prefixo data:image/jpeg;base64, se presente
+    const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+    const byteCharacters = atob(base64Data);
     const byteNumbers = new Array(byteCharacters.length);
     
     for (let i = 0; i < byteCharacters.length; i++) {
@@ -93,12 +95,14 @@ export const createImageUrl = (base64Data: string, mimeType: string = 'image/jpe
       return '/placeholder.svg?height=600&width=400&text=Imagem+Não+Disponível';
     }
     
-    const blob = base64ToBlob(base64Data, mimeType);
-    if (blob.size === 0) {
-      return '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';
+    // Se já é uma URL completa, retornar diretamente
+    if (base64Data.startsWith('data:')) {
+      return base64Data;
     }
     
-    return URL.createObjectURL(blob);
+    // Se não tem prefixo, assumir que é base64 puro e adicionar
+    const base64WithPrefix = base64Data.startsWith('data:') ? base64Data : `data:${mimeType};base64,${base64Data}`;
+    return base64WithPrefix;
   } catch (error) {
     console.error('Erro ao criar URL da imagem:', error);
     return '/placeholder.svg?height=600&width=400&text=Erro+ao+Carregar';

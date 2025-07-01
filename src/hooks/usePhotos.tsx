@@ -67,13 +67,41 @@ export const usePhotos = () => {
     try {
       console.log('📤 Iniciando upload da foto:', file.name);
       
-      // Criar diferentes versões da imagem
-      const originalBlob = file;
-      const thumbnailBlob = await createThumbnail(file, 150, 200);
-      const carouselBlob = await optimizeForCarousel(file, 400, 600);
+      // Verificar se o arquivo é uma imagem válida
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Erro",
+          description: "Arquivo deve ser uma imagem",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Upload do arquivo original para o storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const filePath = `admin-uploads/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('❌ Erro no upload:', uploadError);
+        toast({
+          title: "Erro",
+          description: "Erro ao fazer upload da foto",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Criar diferentes versões da imagem para armazenar como base64
+      const thumbnailBlob = await createThumbnail(file);
+      const carouselBlob = await optimizeForCarousel(file);
       
       // Converter para base64
-      const originalData = await blobToBase64(originalBlob);
+      const originalData = await blobToBase64(file);
       const thumbnailData = await blobToBase64(thumbnailBlob);
       const carouselData = await blobToBase64(carouselBlob);
       
@@ -84,6 +112,7 @@ export const usePhotos = () => {
         .from('photos')
         .insert({
           filename: file.name,
+          path: filePath,
           original_data: originalData,
           thumbnail_data: thumbnailData,
           carousel_data: carouselData,
@@ -154,6 +183,25 @@ export const usePhotos = () => {
     try {
       console.log(`🗑️ Excluindo foto ${id}`);
       
+      // Primeiro, buscar a foto para obter o caminho do storage
+      const { data: photo } = await supabase
+        .from('photos')
+        .select('path')
+        .eq('id', id)
+        .single();
+
+      // Excluir do storage se houver caminho
+      if (photo?.path) {
+        const { error: storageError } = await supabase.storage
+          .from('photos')
+          .remove([photo.path]);
+        
+        if (storageError) {
+          console.warn('⚠️ Erro ao excluir do storage:', storageError);
+        }
+      }
+
+      // Excluir do banco de dados
       const { error } = await supabase
         .from('photos')
         .delete()

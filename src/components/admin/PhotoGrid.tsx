@@ -5,13 +5,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Eye, EyeOff, Trash2 } from 'lucide-react';
 import { createImageUrl } from '@/utils/imageProcessing';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Photo {
   id: string;
   filename: string;
-  original_data: string;
-  thumbnail_data: string;
-  carousel_data: string;
+  path?: string;
+  original_data?: string;
+  thumbnail_data?: string;
+  carousel_data?: string;
   uploaded_at: string;
   is_visible: boolean;
   file_size?: number;
@@ -26,7 +28,19 @@ interface PhotoGridProps {
 
 const PhotoGrid = ({ photos, onToggleVisibility, onDelete }: PhotoGridProps) => {
   const getImageSrc = (photo: Photo): string => {
-    return createImageUrl(photo.thumbnail_data, photo.mime_type);
+    // Priorizar dados base64 quando disponíveis
+    if (photo.thumbnail_data) {
+      return createImageUrl(photo.thumbnail_data, photo.mime_type);
+    }
+    
+    // Fallback para storage path se disponível
+    if (photo.path) {
+      const { data } = supabase.storage.from('photos').getPublicUrl(photo.path);
+      return data?.publicUrl || '/placeholder.svg';
+    }
+
+    // Último fallback
+    return '/placeholder.svg';
   };
 
   const formatFileSize = (bytes?: number): string => {
@@ -75,7 +89,7 @@ const PhotoGrid = ({ photos, onToggleVisibility, onDelete }: PhotoGridProps) => 
                   variant="secondary" 
                   className="absolute top-2 right-2 bg-green-600 text-white"
                 >
-                  3 Res
+                  {photo.path && photo.thumbnail_data ? 'Storage+Base64' : photo.path ? 'Storage' : 'Base64'}
                 </Badge>
               </div>
               
