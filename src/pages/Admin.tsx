@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import PhotoUpload from '@/components/admin/PhotoUpload';
 import PhotoGrid from '@/components/admin/PhotoGrid';
 import MessageList from '@/components/admin/MessageList';
+import AdminMessageForm from '@/components/admin/AdminMessageForm';
 import SystemSettings from '@/components/admin/SystemSettings';
 import { usePhotos } from '@/hooks/usePhotos';
 import { useMessages } from '@/hooks/useMessages';
@@ -196,6 +197,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="messages" className="space-y-4">
+            <AdminMessageForm onMessageSaved={loadMessages} />
             <MessageList
               messages={messages}
               onApprove={handleMessageApprove}

@@ -1,14 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { createThumbnail, optimizeForCarousel, blobToBase64 } from '@/utils/imageProcessing';
 
 interface Photo {
   id: string;
   filename: string;
-  original_data: string;
-  thumbnail_data: string;
-  carousel_data: string;
+  path: string;
   uploaded_at: string;
   is_visible: boolean;
   file_size?: number;
@@ -50,54 +48,53 @@ export const usePhotos = () => {
     }
   };
 
-const uploadPhoto = async (file: File): Promise<boolean> => {
-  try {
-    console.log('Iniciando upload da imagem...');
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-    const filePath = `admin-uploads/${fileName}`;
+  const uploadPhoto = async (file: File): Promise<boolean> => {
+    try {
+      console.log('Iniciando upload da imagem...');
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const filePath = `admin-uploads/${fileName}`;
 
-    // Upload para o bucket Supabase
-    console.log('Fazendo upload para Supabase Storage...');
-    const { error: uploadError } = await supabase.storage
-      .from('photos')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
+      // Upload para o bucket Supabase
+      console.log('Fazendo upload para Supabase Storage...');
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
 
-    if (uploadError) {
-      console.error('Erro ao enviar para storage:', uploadError);
+      if (uploadError) {
+        console.error('Erro ao enviar para storage:', uploadError);
+        return false;
+      }
+
+      console.log('Upload concluído. Inserindo metadados no banco...');
+
+      const { error: dbError } = await supabase
+        .from('photos')
+        .insert({
+          filename: fileName,
+          path: filePath,
+          file_size: file.size,
+          mime_type: file.type,
+          uploaded_at: new Date().toISOString(),
+          is_visible: true,
+        });
+
+      if (dbError) {
+        console.error('Erro ao salvar metadados no banco:', dbError);
+        return false;
+      }
+
+      console.log('Upload e inserção concluídos com sucesso.');
+      await loadPhotos(); // atualiza a galeria
+      return true;
+    } catch (error) {
+      console.error('Erro geral no upload:', error);
       return false;
     }
-
-    console.log('Upload concluído. Inserindo metadados no banco...');
-
-    const { error: dbError } = await supabase
-      .from('photos')
-      .insert({
-        filename: fileName,
-        path: filePath,
-        file_size: file.size,
-        mime_type: file.type,
-        uploaded_at: new Date().toISOString(),
-        is_visible: true,
-      });
-
-    if (dbError) {
-      console.error('Erro ao salvar metadados no banco:', dbError);
-      return false;
-    }
-
-    console.log('Upload e inserção concluídos com sucesso.');
-    await loadPhotos(); // atualiza a galeria
-    return true;
-  } catch (error) {
-    console.error('Erro geral no upload:', error);
-    return false;
-  }
-};
-
+  };
 
   const toggleVisibility = async (id: string, visible: boolean): Promise<boolean> => {
     try {

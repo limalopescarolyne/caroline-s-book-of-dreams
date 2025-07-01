@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,45 +33,38 @@ const PhotoCarousel = () => {
     return data?.publicUrl || '/placeholder.svg';
   };
 
-const loadPhotos = useCallback(async () => {
-  setIsLoading(true);
-  console.log('🔄 Iniciando carregamento de fotos visíveis...');
+  const loadPhotos = useCallback(async () => {
+    setIsLoading(true);
+    console.log('🔄 Iniciando carregamento de fotos visíveis...');
 
-  try {
-    console.log('⏳ Antes do auth.getSession...');
-    const sessionResult = await supabase.auth.getSession();
-    console.log('✅ Sessão:', sessionResult);
+    try {
+      console.log('⏳ Consultando fotos visíveis...');
+      const result = await supabase
+        .from('photos')
+        .select('*')
+        .eq('is_visible', true)
+        .order('uploaded_at', { ascending: true });
 
-    console.log('⏳ Antes da consulta à tabela photos...');
-    const result = await supabase
-      .from('photos')
-      .select('*')
-      .eq('is_visible', true)
-      .order('uploaded_at', { ascending: true });
+      console.log('📦 Resultado da consulta:', result);
 
-    console.log('📦 Resultado da consulta:', result);
-
-    if (result.error) {
-      console.error('❌ Erro na consulta:', result.error);
+      if (result.error) {
+        console.error('❌ Erro na consulta:', result.error);
+        setPhotos([]);
+      } else if (result.data) {
+        console.log(`✅ ${result.data.length} fotos carregadas`);
+        setPhotos(result.data);
+      } else {
+        console.warn('⚠️ Consulta sem erro e sem dados');
+        setPhotos([]);
+      }
+    } catch (err) {
+      console.error('🔥 Erro inesperado:', err);
       setPhotos([]);
-    } else if (result.data) {
-      console.log(`✅ ${result.data.length} fotos carregadas`);
-      setPhotos(result.data);
-    } else {
-      console.warn('⚠️ Consulta sem erro e sem dados');
-      setPhotos([]);
+    } finally {
+      console.log('✅ Finalizando carregamento');
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.error('🔥 Erro inesperado:', err);
-    setPhotos([]);
-  } finally {
-    console.log('✅ Finalizando carregamento');
-    setIsLoading(false);
-  }
-}, []);
-
-
-
+  }, []);
 
   const handleIndexChange = useCallback((newIndex: number) => {
     if (newIndex >= 0 && newIndex < photos.length) {
@@ -101,6 +95,8 @@ const loadPhotos = useCallback(async () => {
   }, [photos, currentIndex, maxPhotos, preloadImage]);
 
   useEffect(() => {
+    if (photos.length === 0) return;
+    
     const interval = setInterval(() => {
       handleIndexChange((currentIndex + 1) % photos.length);
     }, 5000);
