@@ -26,8 +26,10 @@ const GuestBook = () => {
         .order('created_at', { ascending: false });
       
       if (!error && data) {
-        setMessages(data);
-        console.log(`${data.length} mensagens aprovadas carregadas`);
+        // Embaralhar as mensagens para ordem aleatória
+        const shuffledMessages = [...data].sort(() => Math.random() - 0.5);
+        setMessages(shuffledMessages);
+        console.log(`${shuffledMessages.length} mensagens aprovadas carregadas em ordem aleatória`);
       }
     } catch (error) {
       console.error('Erro ao carregar mensagens:', error);
