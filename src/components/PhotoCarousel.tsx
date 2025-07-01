@@ -1,61 +1,111 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { supabase } from '@/integrations/supabase/client';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
-import { usePhotos } from '@/hooks/usePhotos';
-import PhotoDisplay from './PhotoDisplay';
+
+interface Photo {
+  id: string;
+  filename: string;
+  path: string;
+  uploaded_at: string;
+  is_visible: boolean;
+  mime_type?: string;
+  file_size?: number;
+}
 
 const PhotoCarousel = () => {
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const { settings } = useSystemSettings();
-  const { photos, loading } = usePhotos();
   const maxPhotos = settings.carouselPhotosCount || 5;
 
-  // Filtrar apenas fotos visíveis
-  const visiblePhotos = photos.filter(photo => photo.is_visible);
+  const getImageUrl = (photo: Photo): string => {
+    if (!photo?.path) {
+      console.warn('Path da imagem ausente:', photo);
+      return '/placeholder.svg';
+    }
+  
+    const { data } = supabase.storage.from('photos').getPublicUrl(photo.path);
+    console.log('URL da imagem:', data?.publicUrl);
+    return data?.publicUrl || '/placeholder.svg';
+  };
+
+const loadPhotos = useCallback(async () => {
+  setIsLoading(true);
+  console.log('🔄 Iniciando carregamento de fotos visíveis...');
+
+  try {
+    console.log('⏳ Antes do auth.getSession...');
+    const sessionResult = await supabase.auth.getSession();
+    console.log('✅ Sessão:', sessionResult);
+
+    console.log('⏳ Antes da consulta à tabela photos...');
+    const result = await supabase
+      .from('photos')
+      .select('*')
+      .eq('is_visible', true)
+      .order('uploaded_at', { ascending: true });
+
+    console.log('📦 Resultado da consulta:', result);
+
+    if (result.error) {
+      console.error('❌ Erro na consulta:', result.error);
+      setPhotos([]);
+    } else if (result.data) {
+      console.log(`✅ ${result.data.length} fotos carregadas`);
+      setPhotos(result.data);
+    } else {
+      console.warn('⚠️ Consulta sem erro e sem dados');
+      setPhotos([]);
+    }
+  } catch (err) {
+    console.error('🔥 Erro inesperado:', err);
+    setPhotos([]);
+  } finally {
+    console.log('✅ Finalizando carregamento');
+    setIsLoading(false);
+  }
+}, []);
+
+
+
 
   const handleIndexChange = useCallback((newIndex: number) => {
-    if (newIndex >= 0 && newIndex < visiblePhotos.length) {
+    if (newIndex >= 0 && newIndex < photos.length) {
       setCurrentIndex(newIndex);
     }
-  }, [visiblePhotos.length]);
+  }, [photos.length]);
 
-  const preloadImage = useCallback((photo: any) => {
+  const preloadImage = useCallback((photo: Photo) => {
     if (loadedImages.has(photo.id)) return;
 
     const img = new Image();
     img.onload = () => {
-      console.log('✅ Imagem pré-carregada:', photo.filename);
       setLoadedImages(prev => new Set(prev).add(photo.id));
     };
     img.onerror = () => {
-      console.error('❌ Erro ao pré-carregar:', photo.filename);
+      console.error('Erro ao pré-carregar imagem:', photo.filename);
     };
-
-    // Usar dados carousel se disponível, senão usar path do storage
-    if (photo.carousel_data) {
-      img.src = photo.carousel_data;
-    } else if (photo.path) {
-      img.src = `https://ajmlcrsukpldsghxzabi.supabase.co/storage/v1/object/public/photos/${photo.path}`;
-    }
+    img.src = getImageUrl(photo);
   }, [loadedImages]);
 
   useEffect(() => {
-    if (visiblePhotos.length > 0) {
-      const visible = getVisiblePhotos();
-      visible.forEach(({ photo }) => preloadImage(photo));
-    }
-  }, [visiblePhotos, currentIndex, maxPhotos, preloadImage]);
+    loadPhotos();
+  }, [loadPhotos]);
 
   useEffect(() => {
-    if (visiblePhotos.length > 1) {
-      const interval = setInterval(() => {
-        handleIndexChange((currentIndex + 1) % visiblePhotos.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [currentIndex, visiblePhotos.length, handleIndexChange]);
+    const visible = getVisiblePhotos();
+    visible.forEach(({ photo }) => preloadImage(photo));
+  }, [photos, currentIndex, maxPhotos, preloadImage]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      handleIndexChange((currentIndex + 1) % photos.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [currentIndex, photos.length, handleIndexChange]);
 
   const getPhotoStyle = (index: number) => {
     const center = Math.floor(maxPhotos / 2);
@@ -79,18 +129,18 @@ const PhotoCarousel = () => {
   };
 
   const getVisiblePhotos = () => {
-    const visibleCount = Math.min(maxPhotos, visiblePhotos.length);
-    const visible: { photo: any; index: number }[] = [];
+    const visibleCount = Math.min(maxPhotos, photos.length);
+    const visible: { photo: Photo; index: number }[] = [];
 
     for (let i = 0; i < visibleCount; i++) {
-      const index = (currentIndex + i) % visiblePhotos.length;
-      visible.push({ photo: visiblePhotos[index], index: i });
+      const index = (currentIndex + i) % photos.length;
+      visible.push({ photo: photos[index], index: i });
     }
 
     return visible;
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="h-96 flex items-center justify-center">
         <div className="text-pink-300 animate-pulse">Carregando fotos...</div>
@@ -98,14 +148,12 @@ const PhotoCarousel = () => {
     );
   }
 
-  if (visiblePhotos.length === 0) {
+  if (photos.length === 0) {
     return (
       <div className="h-96 flex items-center justify-center">
         <div className="text-center text-pink-300">
-          <p className="text-xl mb-2">📸 Nenhuma foto disponível</p>
-          <p className="text-sm text-pink-200">
-            O administrador ainda não adicionou fotos ao sistema.
-          </p>
+          Nenhuma foto disponível no momento
+          <p className="text-sm text-pink-200">O administrador ainda não adicionou fotos.</p>
         </div>
       </div>
     );
@@ -115,24 +163,25 @@ const PhotoCarousel = () => {
     <div className="relative h-96 flex items-center justify-center overflow-hidden perspective-1000">
       <div className="relative w-full max-w-5xl mx-auto flex justify-center items-center">
         {getVisiblePhotos().map(({ photo, index }) => {
+          const url = getImageUrl(photo);
           const isLoaded = loadedImages.has(photo.id);
-          
           return (
             <div
               key={`${photo.id}-${index}`}
               className="absolute w-36 md:w-48 h-56 md:h-64 rounded-lg shadow-xl border border-white/10 overflow-hidden cursor-pointer"
               style={getPhotoStyle(index)}
-              onClick={() => handleIndexChange((currentIndex + index) % visiblePhotos.length)}
+              onClick={() => handleIndexChange((currentIndex + index) % photos.length)}
             >
               <AspectRatio ratio={3 / 4}>
-                <PhotoDisplay
-                  photo={photo}
-                  size="carousel"
-                  className={`w-full h-full object-cover rounded-lg transition-opacity duration-300 ${
-                    isLoaded ? 'opacity-100' : 'opacity-0'
-                  }`}
+                <img
+                  src={url}
+                  alt={`Foto ${index + 1}`}
+                  className={`w-full h-full object-cover rounded-lg transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
                   onLoad={() => setLoadedImages(prev => new Set(prev).add(photo.id))}
-                  onError={() => console.error('Erro ao carregar foto no carousel')}
+                  onError={(e) => {
+                    console.error('Erro ao carregar imagem:', photo.filename);
+                    (e.target as HTMLImageElement).src = '/placeholder.svg';
+                  }}
                 />
                 {!isLoaded && (
                   <div className="absolute inset-0 bg-gray-800 animate-pulse flex items-center justify-center rounded-lg">
@@ -143,11 +192,6 @@ const PhotoCarousel = () => {
             </div>
           );
         })}
-      </div>
-      
-      {/* Debug info */}
-      <div className="absolute bottom-2 left-2 text-xs text-gray-500 bg-black/50 p-2 rounded">
-        Fotos: {visiblePhotos.length} | Visíveis: {Math.min(maxPhotos, visiblePhotos.length)} | Atual: {currentIndex + 1}
       </div>
     </div>
   );
